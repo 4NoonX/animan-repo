@@ -1,0 +1,13 @@
+This repository is licensed under the GNU General Public License version 3.
+
+The full text of the license is available at:
+
+    https://www.gnu.org/licenses/gpl-3.0.txt
+
+SPDX-License-Identifier: GPL-3.0-or-later
+
+Note that this license covers the tooling in this repository (update.sh, the
+GitHub Actions workflow and config.yml). It does not cover the applications
+published by this repository: Yōkai and Yōkai Nightly are third party
+software, licensed by their authors under the Apache License 2.0. They are
+only downloaded here, not modified.

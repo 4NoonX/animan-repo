@@ -1,0 +1,47 @@
+AntiFeatures:
+    - NonFreeNet
+    - GooglePlay
+AuthorName: null2264
+Categories:
+    - Reading
+CurrentVersion: r6433
+CurrentVersionCode: 6433
+Description: |
+    Nightly builds of Yōkai, the free and open source manga reader for
+    Android. Rebuilt from the development branch on every upstream commit,
+    so expect bugs that the stable releases do not have. Back up your
+    library before switching to a nightly and before updating it again.
+
+    Because this is a nightly, it is installed under its own package name
+    next to the stable app rather than replacing it. The two installs do
+    not share a database: a library built up in one is not visible in the
+    other.
+
+    Features are the same as the stable release: reading of downloaded
+    content, local sources that read ComicInfo.xml, NSFW/SFW library
+    filters, multiple readers and reading directions, trackers for
+    MyAnimeList, AniList, Kitsu, Manga Updates, Shikimori and Bangumi,
+    categories, backups and Material You themes.
+
+    Requires Android 8.0 (API 26) or newer.
+
+    Extensions are not part of this repository. They are downloaded from
+    the extension repository built into the app, and every source you add
+    determines where the app connects to. Many of them are not free
+    services, which is why the app is tagged with the NonFreeNet
+    anti-feature.
+
+    These builds are upstream's "standard" flavour, so they contain the
+    proprietary Firebase and Google Play services libraries, hence the
+    GooglePlay anti-feature. They are not builds from the F-Droid build
+    service.
+
+    Report problems on the main repository, not on the nightly one:
+    https://github.com/null2264/yokai/issues
+IssueTracker: https://github.com/null2264/yokai/issues
+License: Apache-2.0
+Name: Yōkai Nightly
+SourceCode: https://github.com/null2264/yokai
+WebSite: https://github.com/null2264/yokai-nightly
+Translation: https://hosted.weblate.org/projects/yokai/
+VersionCode: 6433

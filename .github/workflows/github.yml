@@ -1,0 +1,103 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/github.yml'
+      - 'config.yml'
+      - 'update.sh'
+      - 'fdroid/metadata/**'
+  workflow_dispatch:
+  schedule:
+    # Every day, a few minutes off the hour so the runners are less busy.
+    - cron: "17 5 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    container:
+      image: debian:testing
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install the build dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            aapt \
+            ca-certificates \
+            curl \
+            default-jdk-headless \
+            fdroidserver \
+            git \
+            jq \
+            unzip \
+            webp \
+            zip
+          chmod +x update.sh
+
+      - name: Materialise the repository configuration
+        run: |
+          mkdir -p fdroid/repo
+          echo "$KEYSTORE" | base64 -d - > fdroid/keystore.keystore
+          escape() { printf '%s' "$1" | sed -e 's/[\\&|\]/\\&/g'; }
+          sed \
+            -e "s|KEYALIAS|$(escape "$KEYALIAS")|" \
+            -e "s|KEYDNAME|$(escape "$KEYDNAME")|" \
+            -e "s|KEYSTORE_PASS|$(escape "$KEYSTORE_PASS")|" \
+            -e "s|KEY_PASS|$(escape "$KEY_PASS")|" \
+            config.yml > fdroid/config.yml
+        env:
+          KEYSTORE: ${{ secrets.KEYSTORE }}
+          KEYALIAS: ${{ secrets.KEY_ALIAS }}
+          KEYDNAME: ${{ secrets.KEY_DNAME }}
+          KEYSTORE_PASS: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Show the repository fingerprint
+        run: |
+          fingerprint=$(keytool -list -v \
+            -keystore fdroid/keystore.keystore \
+            -alias "$KEYALIAS" \
+            -storepass "$KEYSTORE_PASS" \
+            | grep -i 'SHA256:' | head -n 1 | sed 's/.*: //; s/://g')
+          {
+            echo "### F-Droid repository fingerprint"
+            echo
+            echo '```'
+            echo "$fingerprint"
+            echo '```'
+            echo
+            echo 'Add \`https://4noonx.github.io/animan-repo/fdroid/repo?fingerprint='"$fingerprint"'\` to your F-Droid client.'
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          KEYALIAS: ${{ secrets.KEY_ALIAS }}
+          KEYSTORE_PASS: ${{ secrets.KEY_STORE_PASSWORD }}
+
+      - name: Build the repository
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./update.sh
+
+      - name: Drop the signing material before publishing
+        run: |
+          rm -f fdroid/keystore.keystore fdroid/config.yml fdroid/keystore.keystore.old
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: fdroid
+          force_orphan: true

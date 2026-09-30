@@ -1,0 +1,15 @@
+# Signing material and generated repository configuration, provided by the CI
+fdroid/keystore.keystore
+fdroid/config.yml
+
+# Everything fdroidserver generates
+fdroid/.fdroidignore
+fdroid/changelog/
+fdroid/icons/
+fdroid/index-v1.jar
+fdroid/index-v1.jar.sig
+fdroid/index.xml
+fdroid/index.xml.sig
+fdroid/repo/
+fdroid/updater-icon.png
+fdroid/updater-name.png

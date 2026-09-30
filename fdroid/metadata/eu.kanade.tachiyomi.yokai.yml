@@ -1,0 +1,45 @@
+AntiFeatures:
+    - NonFreeNet
+    - GooglePlay
+AuthorName: null2264
+Categories:
+    - Reading
+CurrentVersion: v1.10.2
+CurrentVersionCode: 162
+Description: |
+    Yōkai is a free and open source manga reader for Android, forked from
+    Tachiyomi/Mihon. It ships without any content and only talks to the
+    sources you install yourself, everything you download can be read
+    offline afterwards.
+
+    Features:
+
+    • Reading of downloaded content, local sources read ComicInfo.xml for
+    the chapter title, number and scanlator.
+    • NSFW/SFW library filters, categories and tags.
+    • A configurable reader with multiple viewers, reading directions
+    and per series settings.
+    • Trackers for MyAnimeList, AniList, Kitsu, Manga Updates, Shikimori
+    and Bangumi.
+    • Scheduled library updates and local backups.
+    • Material You themes, a staggered library grid, drag and drop
+    sorting and dynamic categories.
+
+    Requires Android 8.0 (API 26) or newer.
+
+    Extensions are not part of this repository. They are downloaded from
+    the extension repository built into the app, and every source you add
+    determines where the app connects to. Many of them are not free
+    services, which is why the app is tagged with the NonFreeNet
+    anti-feature.
+
+    This build is upstream's "standard" flavour, so it contains the
+    proprietary Firebase and Google Play services libraries, hence the
+    GooglePlay anti-feature. It is not a build from the F-Droid build
+    service.
+IssueTracker: https://github.com/null2264/yokai/issues
+License: Apache-2.0
+Name: Yōkai
+SourceCode: https://github.com/null2264/yokai
+WebSite: https://github.com/null2264/yokai
+Translation: https://hosted.weblate.org/projects/yokai/

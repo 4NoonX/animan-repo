@@ -1,0 +1,15 @@
+repo_url: https://4noonx.github.io/animan-repo/fdroid/repo
+repo_name: Yōkai
+repo_description: >-
+   The F-Droid repository for Yōkai and Yōkai Nightly, a free and open source
+   manga reader for Android
+
+repo_keyalias: KEYALIAS
+
+keystore: keystore.keystore
+
+keystorepass: "KEYSTORE_PASS"
+
+keypass: "KEY_PASS"
+
+keydname: KEYDNAME
