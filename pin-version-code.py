@@ -38,6 +38,24 @@ def package_key(package):
     return package.get("name") or package.get("id") or "(no name)"
 
 
+def describe(element, limit=400):
+    """A one line summary of an element, for error messages.
+
+    The index is generated, so the only way to know what it looks like is to be
+    told, and a package that cannot be found is exactly when that is needed.
+    """
+    parts = ["<" + element.tag]
+    parts += ['%s="%s"' % pair for pair in element.attrib.items()]
+    opening = " ".join(parts) + ">"
+    children = "".join(
+        "<%s>%s</%s>" % (child.tag, (child.text or "").strip(), child.tag)
+        for child in element
+    )
+    rendered = opening + children + "</" + element.tag + ">"
+    summary = " ".join(rendered.split())
+    return summary if len(summary) <= limit else summary[:limit] + "..."
+
+
 def main(argv):
     if len(argv) != 4:
         print("usage: pin-version-code.py INDEX APP_ID VERSION_CODE", file=sys.stderr)
@@ -75,6 +93,8 @@ def main(argv):
         return fail(
             "could not find %s in %s, which holds: %s"
             % (app_id, index, ", ".join(package_key(each) for each in packages))
+            + "\nthe first one looks like: "
+            + describe(packages[0])
         )
 
     element = package.find("versionCode")
