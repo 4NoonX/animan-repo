@@ -16,6 +16,10 @@ on:
 permissions:
   contents: write
 
+defaults:
+  run:
+    shell: bash
+
 concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: true
@@ -50,7 +54,7 @@ jobs:
       - name: Materialise the repository configuration
         run: |
           mkdir -p fdroid/repo
-          echo "$KEYSTORE" | base64 -d - > fdroid/keystore.keystore
+          printf '%s' "$KEYSTORE" | tr -d '[:space:]' | base64 -d - > fdroid/keystore.keystore
           escape() { printf '%s' "$1" | sed -e 's/[\\&|\]/\\&/g'; }
           sed \
             -e "s|KEYALIAS|$(escape "$KEYALIAS")|" \
@@ -78,6 +82,8 @@ jobs:
             echo '```'
             echo "$fingerprint"
             echo '```'
+            echo
+            echo "Keystore SHA-256: \`$(sha256sum fdroid/keystore.keystore | cut -d' ' -f1)\`"
             echo
             echo 'Add \`https://4noonx.github.io/animan-repo/fdroid/repo?fingerprint='"$fingerprint"'\` to your F-Droid client.'
           } >> "$GITHUB_STEP_SUMMARY"
