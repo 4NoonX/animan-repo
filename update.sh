@@ -337,16 +337,18 @@ rewrite_version_code() {
 	# Only the manifest element's own version code is rewritten, which is the
 	# first android:versionCode in the file: the activity and provider entries
 	# further down carry platform version codes of their own that must not move.
-	# awk is used instead of sed because the decoded manifest is not guaranteed
-	# to put the whole <manifest> element on one line.
+	# The old value is not matched, only the attribute name, so this does not
+	# depend on how apktool happens to render the number it decoded. awk is used
+	# rather than sed because the decoded manifest is not guaranteed to put the
+	# whole <manifest> element on one line.
 	manifest="$work/unpacked/AndroidManifest.xml"
 	[[ -f "$manifest" ]] || die "apktool did not write a manifest for $apk_path"
 
-	awk -v from="$from" -v to="$to" '
+	awk -v to="$to" '
 		/<manifest/ && !seen { opening = 1 }
 		{
 			if (opening) {
-				gsub("android:versionCode=\"" from "\"", "android:versionCode=\"" to "\"")
+				gsub(/android:versionCode="[^"]*"/, "android:versionCode=\"" to "\"")
 				if (/>[^<]*$/) seen = 1
 			}
 			print
@@ -356,15 +358,10 @@ rewrite_version_code() {
 	mv -f "$work/manifest.xml" "$manifest"
 
 	if [[ "$(grep -c "android:versionCode=\"$to\"" "$manifest")" -ne 1 ]]; then
-		# The substitution is the one step that depends on how apktool happens to
-		# spell the attribute, so the decoded manifest is worth having in the log
-		# when it does not take.
-		warn "the decoded manifest of $(basename "$apk_path") looks like this:"
-		awk '{ printf "%4d| %.180s\n", NR, $0 }' "$manifest" |
-			head -n 20 | sed 's/^/       /' >&2
-		warn "and it declares these version codes:"
-		grep -n 'versionCode' "$manifest" |
-			cut -c1-200 | sed 's/^/       /' >&2
+		# The substitution is the one step that depends on how apktool spells the
+		# attribute, so the decoded element is worth having in the log in full.
+		warn "the attributes of the manifest element of $(basename "$apk_path") are:"
+		grep -o '<manifest[^>]*' "$manifest" | tr -s ' ' '\n' | sed 's/^/       /' >&2
 		die "the decoded manifest of $apk_path does not declare version code $to once"
 	fi
 
