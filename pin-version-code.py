@@ -6,11 +6,24 @@ fdroidserver publishes the version code it reads out of the APK and rejects a
 version code in its manifest can only be corrected here, in the index. The APK
 itself is left alone.
 
+The index is generated, so this reads what it can rather than assuming a shape:
+a package is found by its Android package name wherever fdroidserver put it, and
+the version code element is matched on its name only. Anything it cannot make
+sense of is reported instead of guessed at.
+
 Usage: pin-version-code.py INDEX APP_ID VERSION_CODE
 """
 
 import sys
 import xml.etree.ElementTree as ElementTree
+
+# An F-Droid index keys an app on its Android package name. The v1 XML index
+# carries it in a "name" child element, but it has moved between attributes and
+# elements over the years, so every place it has been seen is tried.
+ID_ATTRIBUTES = ("name", "id")
+ID_ELEMENTS = ("packageName", "name")
+
+VERSION_CODE_TAG = "versioncode"
 
 
 def fail(message):
@@ -18,42 +31,56 @@ def fail(message):
     return 1
 
 
-def find_package(root, app_id):
-    """Return the <package> element of an app, or None.
+def text_of(element):
+    return (element.text or "").strip()
 
-    F-Droid's XML index keys an app on the "name" attribute of <package>,
-    which is the Android package name, and carries the human readable name in
-    a <name> child element. "id" is tried as well so an index that uses it
-    instead still works.
-    """
+
+def find_package(root, app_id):
+    """Return the <package> element of an app, or None."""
     packages = list(root.iter("package"))
-    for attribute in ("name", "id"):
+
+    for attribute in ID_ATTRIBUTES:
         for package in packages:
             if package.get(attribute) == app_id:
                 return package
+
+    for tag in ID_ELEMENTS:
+        for package in packages:
+            for child in package:
+                if child.tag == tag and text_of(child) == app_id:
+                    return package
+
+    return None
+
+
+def find_version_code(package):
+    for child in package:
+        if child.tag.lower() == VERSION_CODE_TAG:
+            return child
     return None
 
 
 def package_key(package):
-    return package.get("name") or package.get("id") or "(no name)"
+    """The best guess at a package's Android package name, for error messages."""
+    for attribute in ID_ATTRIBUTES:
+        if package.get(attribute):
+            return package.get(attribute)
+    for tag in ID_ELEMENTS:
+        for child in package:
+            if child.tag == tag and text_of(child):
+                return text_of(child)
+    return "(no package name)"
 
 
-def describe(element, limit=400):
-    """A one line summary of an element, for error messages.
+def describe(element):
+    """The attributes and child element names of an element, for error messages.
 
     The index is generated, so the only way to know what it looks like is to be
     told, and a package that cannot be found is exactly when that is needed.
     """
-    parts = ["<" + element.tag]
-    parts += ['%s="%s"' % pair for pair in element.attrib.items()]
-    opening = " ".join(parts) + ">"
-    children = "".join(
-        "<%s>%s</%s>" % (child.tag, (child.text or "").strip(), child.tag)
-        for child in element
-    )
-    rendered = opening + children + "</" + element.tag + ">"
-    summary = " ".join(rendered.split())
-    return summary if len(summary) <= limit else summary[:limit] + "..."
+    attributes = " ".join('%s="%s"' % pair for pair in element.attrib.items())
+    children = ", ".join(child.tag for child in element)
+    return "<%s %s> holds: %s" % (element.tag, attributes, children)
 
 
 def main(argv):
@@ -97,9 +124,12 @@ def main(argv):
             + describe(packages[0])
         )
 
-    element = package.find("versionCode")
+    element = find_version_code(package)
     if element is None:
-        return fail("%s has no versionCode element in %s" % (app_id, index))
+        return fail(
+            "%s has no <%s> element in %s, it holds: %s"
+            % (app_id, VERSION_CODE_TAG, index, describe(package))
+        )
 
     current = element.text
     if current == version_code:
@@ -107,7 +137,9 @@ def main(argv):
 
     element.text = version_code
     tree.write(index, encoding="utf-8", xml_declaration=True)
-    print("%s: index version code corrected from %s to %s" % (app_id, current, version_code))
+    print(
+        "%s: index version code corrected from %s to %s" % (app_id, current, version_code)
+    )
     return 0
 
 
