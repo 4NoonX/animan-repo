@@ -85,6 +85,10 @@ declare -a APP_IDS=(
 	"eu.kanade.tachiyomi.nightlyYokai"
 )
 
+# Every APK this run publishes, across every package. See prune_unpublished_apks
+# for why the set has to be complete before anything is removed.
+declare -a PUBLISHED_APKS=()
+
 # The APK variants published for every package. Upstream builds one APK per ABI
 # plus a universal one, and all of them carry the same version code, which is
 # what lets an F-Droid client pick the one that fits the device.
@@ -416,7 +420,7 @@ update_app() {
 		log "  $(basename "$apk_path")"
 	done
 
-	prune_unpublished_apks "$app_id" "${apk_paths[@]}"
+	PUBLISHED_APKS+=("${apk_paths[@]}")
 
 	log "$app_id: pointing the metadata at $tag"
 	set_yaml_key "CurrentVersion" "$tag" "$metadata"
@@ -480,14 +484,17 @@ install_variant() {
 	LAST_UPSTREAM_VERSION_CODE="$version_code"
 }
 
-# Removes any APK left in the repository directory by an earlier run that is not
-# one of the ones just published. CI starts from a fresh checkout every time, so
-# this only ever has anything to do for a local run, where a leftover would
-# otherwise be indexed next to the current version.
+# Removes any APK in the repository directory that this run did not publish. A
+# leftover from an earlier run would be indexed next to the current version and
+# offered to a client as an update. CI starts from a fresh checkout every time,
+# so this only ever has anything to do for a local run.
+#
+# The list has to be every APK of every package, not one package's: both packages
+# are built from APKs named after the release, "yokai-v1.10.2.apk" and
+# "yokai-r6433.apk" side by side, so a package cannot tell its own APKs apart from
+# another package's by name. Pruning per package takes the other package's APKs
+# with it, and the index that is built afterwards then loses a whole app.
 prune_unpublished_apks() {
-	local app_id="$1"
-	shift
-
 	# The published paths are reduced to file names first, because that is what the
 	# directory listing below yields, and comparing a path against a file name
 	# would match nothing and take every APK with it.
@@ -513,7 +520,7 @@ prune_unpublished_apks() {
 		return
 	fi
 
-	log "$app_id: removing ${#stale[@]} APK(s) from an earlier run"
+	log "removing ${#stale[@]} APK(s) left by an earlier run"
 	for apk in "${stale[@]}"; do
 		log "  $(basename "$apk")"
 		rm -f "$apk"
@@ -637,6 +644,8 @@ main() {
 	for app_id in "${APP_IDS[@]}"; do
 		update_app "$app_id"
 	done
+
+	prune_unpublished_apks "${PUBLISHED_APKS[@]}"
 
 	log "running fdroid update"
 	if ! ( cd "$FDROID_DIR" && fdroid update --pretty --use-date-from-apk ); then
