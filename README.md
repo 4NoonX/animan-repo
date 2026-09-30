@@ -55,6 +55,7 @@ one is not visible in the other.
 .github/workflows/github.yml   builds and deploys the repository to gh-pages
 config.yml                     F-Droid server configuration, minus the secrets
 update.sh                      downloads the releases and regenerates the metadata
+pin-version-code.py            sets a version code in the generated index
 fdroid/metadata/*.yml          per app metadata, descriptions, names, trackers
 fdroid/repo/                   generated: APKs, icons and screenshots
 ```
@@ -69,9 +70,9 @@ fdroid/repo/                   generated: APKs, icons and screenshots
    `fdroid/metadata`,
 5. pulls the icon and the screenshots from the upstream repository,
 6. runs `fdroid update`,
-7. rewrites the nightly version code in `index.xml`, because fdroidserver only
-   publishes the version code it reads out of the APK and has no metadata key
-   to override it with.
+7. rewrites the nightly version code in `index.xml` with `pin-version-code.py`,
+   because fdroidserver only publishes the version code it reads out of the APK
+   and has no metadata key to override it with.
 
 The metadata in `fdroid/metadata` is edited by hand and committed, the script
 only touches the version fields and the changelogs. That way a change to a
@@ -106,7 +107,7 @@ keytool -genkeypair -v -keystore keystore.keystore -storetype JKS \
 ### Running it locally
 
 ```bash
-apt-get install aapt curl dwebp fdroidserver jq xmlstarlet
+apt-get install aapt curl dwebp fdroidserver jq
 cp config.yml fdroid/
 printf '%s' "$KEYSTORE_BASE64" | base64 -d - > fdroid/keystore.keystore
 # fill in the KEYALIAS / KEYSTORE_PASS / KEY_PASS / KEYDNAME placeholders

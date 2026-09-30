@@ -5,7 +5,7 @@
 #
 # Requirements (all packaged for Debian/Ubuntu):
 #
-#   aapt curl dwebp fdroidserver jq
+#   aapt curl dwebp fdroidserver jq python3
 #
 # Optional environment variables:
 #
@@ -22,6 +22,8 @@ set -euo pipefail
 # exit from a three hundred line script is not something to debug from a
 # workflow log.
 trap 'status=$?; printf "\033[0;31merror:\033[0m %s exited with status %d\n" "$BASH_COMMAND" "$status" >&2; exit "$status"' ERR
+
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 GITHUB_API="https://api.github.com"
 RAW_GITHUB="https://raw.githubusercontent.com"
@@ -59,7 +61,7 @@ declare -A ASSET_REPO=(
 #
 # fdroidserver publishes the version code it reads out of the APK and has no
 # metadata key to override it with, so the index is corrected once
-# "fdroid update" has written it. See pin_index_version_code.
+# "fdroid update" has written it. See pin-version-code.py.
 declare -A VERSION_CODE_FROM_TAG=(
 	["eu.kanade.tachiyomi.yokai"]="no"
 	["eu.kanade.tachiyomi.nightlyYokai"]="yes"
@@ -296,18 +298,16 @@ update_app() {
 pin_index_version_code() {
 	local app_id="$1" version_code="$2"
 	local index="$REPO_DIR/index.xml"
-	local current
+	local output
 
 	[[ -f "$index" ]] || die "$index was not generated"
 
-	current=$(xmlstarlet sel -t -v "//package[@id='$app_id']/versionCode" "$index") ||
-		die "could not read the version code of $app_id out of $index"
-	[[ -n "$current" ]] || die "could not find $app_id in $index"
+	if ! output=$(python3 "$SCRIPT_DIR/pin-version-code.py" "$index" "$app_id" "$version_code"); then
+		die "could not publish $app_id as version code $version_code"
+	fi
 
-	if [[ "$current" != "$version_code" ]]; then
-		xmlstarlet ed -L -u "//package[@id='$app_id']/versionCode" -v "$version_code" "$index" ||
-			die "could not set the version code of $app_id in $index"
-		log "$app_id: index version code corrected from $current to $version_code"
+	if [[ -n "$output" ]]; then
+		log "$output"
 	fi
 }
 
@@ -328,9 +328,12 @@ publish_repo_icon() {
 main() {
 	local tool
 
-	for tool in aapt curl dwebp fdroid jq mktemp xmlstarlet; do
+	for tool in aapt curl dwebp fdroid jq mktemp python3; do
 		require "$tool"
 	done
+
+	[[ -f "$SCRIPT_DIR/pin-version-code.py" ]] ||
+		die "$SCRIPT_DIR/pin-version-code.py is missing"
 
 	[[ -f "$FDROID_DIR/config.yml" ]] ||
 		die "$FDROID_DIR/config.yml is missing, copy it into place first"
