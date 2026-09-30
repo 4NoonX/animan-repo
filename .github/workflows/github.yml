@@ -108,4 +108,11 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: fdroid
+          # Keep the "fdroid/repo" layout the repository URL is built around,
+          # rather than serving its contents off the root of the site.
+          destination_dir: fdroid
+          # fdroidserver's working files, including a full second copy of
+          # index-v2.json, have no business being published.
+          excludes: |
+            tmp/**
           force_orphan: true
