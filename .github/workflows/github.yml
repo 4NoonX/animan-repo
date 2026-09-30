@@ -48,6 +48,7 @@ jobs:
             jq \
             unzip \
             webp \
+            xmlstarlet \
             zip
           chmod +x update.sh
 
@@ -62,6 +63,7 @@ jobs:
             -e "s|KEYSTORE_PASS|$(escape "$KEYSTORE_PASS")|" \
             -e "s|KEY_PASS|$(escape "$KEY_PASS")|" \
             config.yml > fdroid/config.yml
+          chmod 600 fdroid/config.yml fdroid/keystore.keystore
         env:
           KEYSTORE: ${{ secrets.KEYSTORE }}
           KEYALIAS: ${{ secrets.KEY_ALIAS }}

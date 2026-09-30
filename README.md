@@ -29,11 +29,13 @@ one is not visible in the other.
 
 - **Only the universal build is published.** Upstream also builds per-ABI
   APKs, those stay on the upstream releases page.
-- **The nightly version code is rewritten.** Upstream keeps the Android
-  version code of every nightly at the version code of the last stable
-  release, so F-Droid would never see a new build. The version code in this
-  repository is taken from the release tag instead, which upstream builds as
-  `r<number of commits>` and which only ever grows.
+- **The nightly version code is rewritten in the index.** Upstream keeps the
+  Android version code of every nightly at the version code of the last stable
+  release, so F-Droid would never see a new build. F-Droid clients compare the
+  version code in `index.xml`, so `update.sh` sets the version code published
+  for the nightlies to the number in the release tag, which upstream builds as
+  `r<number of commits>` and which only ever grows. The APK itself is left
+  alone, so the app details in a client still show upstream's `162`.
 - **Nothing about the APK is modified** other than the signature. The stable
   and the nightly APKs are upstream's `standard` flavour, which means they
   contain the proprietary Firebase and Google Play services libraries. Both
@@ -66,7 +68,10 @@ fdroid/repo/                   generated: APKs, icons and screenshots
 4. updates `CurrentVersion`, `CurrentVersionCode` and the changelog in
    `fdroid/metadata`,
 5. pulls the icon and the screenshots from the upstream repository,
-6. runs `fdroid update`.
+6. runs `fdroid update`,
+7. rewrites the nightly version code in `index.xml`, because fdroidserver only
+   publishes the version code it reads out of the APK and has no metadata key
+   to override it with.
 
 The metadata in `fdroid/metadata` is edited by hand and committed, the script
 only touches the version fields and the changelogs. That way a change to a
@@ -101,13 +106,13 @@ keytool -genkeypair -v -keystore keystore.keystore -storetype JKS \
 ### Running it locally
 
 ```bash
-apt-get install aapt curl dwebp fdroidserver jq
+apt-get install aapt curl dwebp fdroidserver jq xmlstarlet
 cp config.yml fdroid/
 printf '%s' "$KEYSTORE_BASE64" | base64 -d - > fdroid/keystore.keystore
 # fill in the KEYALIAS / KEYSTORE_PASS / KEY_PASS / KEYDNAME placeholders
+chmod 600 fdroid/config.yml fdroid/keystore.keystore
 export TOKEN=          # optional
-./update.sh
-fdroid update --pretty # already part of update.sh
+./update.sh            # which also runs fdroid update
 ```
 
 ## Disclaimer

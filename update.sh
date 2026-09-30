@@ -51,10 +51,18 @@ declare -A ASSET_REPO=(
 # would never see an update. The version code published for the nightlies is
 # therefore taken from the release tag, which upstream builds as
 # "r<number of commits in master>" and which grows monotonically.
+#
+# fdroidserver publishes the version code it reads out of the APK and has no
+# metadata key to override it with, so the index is corrected once
+# "fdroid update" has written it. See pin_index_version_code.
 declare -A VERSION_CODE_FROM_TAG=(
 	["eu.kanade.tachiyomi.yokai"]="no"
 	["eu.kanade.tachiyomi.nightlyYokai"]="yes"
 )
+
+# The version code each package ended up being published under, filled in by
+# update_app and read back by pin_index_version_code.
+declare -A PUBLISHED_VERSION_CODE=()
 
 declare -a APP_IDS=(
 	"eu.kanade.tachiyomi.yokai"
@@ -120,15 +128,6 @@ set_yaml_key() {
 	warn "'$key' is missing from $file, appending it"
 	printf '%s: %s\n' "$key" "$value" >> "$file"
 	rm -f "$tmp"
-}
-
-# remove_yaml_key <key> <file>
-remove_yaml_key() {
-	local key="$1" file="$2" tmp
-
-	tmp=$(mktemp)
-	awk -v key="$key" 'index($0, key ":") != 1' "$file" > "$tmp"
-	mv "$tmp" "$file"
 }
 
 # Drops the checksum table upstream appends to every release body, it is
@@ -276,11 +275,7 @@ update_app() {
 	log "$app_id: pointing the metadata at $tag"
 	set_yaml_key "CurrentVersion" "$tag" "$metadata"
 	set_yaml_key "CurrentVersionCode" "$version_code" "$metadata"
-	if [[ "$version_code" == "$apk_version_code" ]]; then
-		remove_yaml_key "VersionCode" "$metadata"
-	else
-		set_yaml_key "VersionCode" "$version_code" "$metadata"
-	fi
+	PUBLISHED_VERSION_CODE["$app_id"]="$version_code"
 
 	write_changelog "$app_id" "$version_code" "$release_json"
 	refresh_assets "$app_id" "$asset_repo"
@@ -288,10 +283,39 @@ update_app() {
 	rm -f "$release_json"
 }
 
+# F-Droid clients decide whether an update is available by comparing the
+# version code in the index with the one they recorded at install time, so the
+# index is what has to carry the number taken from the release tag. The APK
+# itself is left alone: it is signed by upstream and its manifest still says
+# 162, which only ever shows up as the "version code" line in the app details.
+pin_index_version_code() {
+	local app_id="$1" version_code="$2"
+	local index="$REPO_DIR/index.xml"
+	local current
+
+	[[ -f "$index" ]] || die "$index was not generated"
+
+	current=$(xmlstarlet sel -t -v "//package[@id='$app_id']/versionCode" "$index")
+	[[ -n "$current" ]] || die "could not find $app_id in $index"
+
+	if [[ "$current" != "$version_code" ]]; then
+		xmlstarlet ed -L -u "//package[@id='$app_id']/versionCode" -v "$version_code" "$index"
+		log "$app_id: index version code corrected from $current to $version_code"
+	fi
+}
+
+# fdroidserver expects a repository icon at a fixed place and only warns when
+# it is missing, so the upstream app icon is reused for the repository itself.
+publish_repo_icon() {
+	mkdir -p "$REPO_DIR/icons"
+	cp -f "$REPO_DIR/eu.kanade.tachiyomi.yokai/en-US/icon.png" "$REPO_DIR/icons/icon.png" ||
+		warn "could not publish a repository icon"
+}
+
 main() {
 	local tool
 
-	for tool in aapt curl dwebp fdroid jq mktemp; do
+	for tool in aapt curl dwebp fdroid jq mktemp xmlstarlet; do
 		require "$tool"
 	done
 
@@ -307,11 +331,19 @@ main() {
 		update_app "$app_id"
 	done
 
+	publish_repo_icon
+
 	log "running fdroid update"
 	(
 		cd "$FDROID_DIR"
 		fdroid update --pretty --use-date-from-apk
 	)
+
+	for app_id in "${APP_IDS[@]}"; do
+		if [[ "${VERSION_CODE_FROM_TAG[$app_id]}" == "yes" ]]; then
+			pin_index_version_code "$app_id" "${PUBLISHED_VERSION_CODE[$app_id]}"
+		fi
+	done
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
