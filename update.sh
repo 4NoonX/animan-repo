@@ -334,22 +334,38 @@ rewrite_version_code() {
 	apktool decode --force --output "$work/unpacked" "$apk_path" > /dev/null ||
 		die "could not decode $(basename "$apk_path")"
 
-	# apktool decodes the manifest to plain text and the manifest element comes
-	# first, so the first android:versionCode in the file is the app's own. The
-	# activity and provider entries further down carry platform version codes
-	# that must not move, which is why the substitution is not global.
+	# Only the manifest element's own version code is rewritten, which is the
+	# first android:versionCode in the file: the activity and provider entries
+	# further down carry platform version codes of their own that must not move.
+	# awk is used instead of sed because the decoded manifest is not guaranteed
+	# to put the whole <manifest> element on one line.
 	manifest="$work/unpacked/AndroidManifest.xml"
 	[[ -f "$manifest" ]] || die "apktool did not write a manifest for $apk_path"
 
-	sed -i "0,/android:versionCode=\"$from\"/s//android:versionCode=\"$to\"/" "$manifest" ||
+	awk -v from="$from" -v to="$to" '
+		/<manifest/ && !seen { opening = 1 }
+		{
+			if (opening) {
+				gsub("android:versionCode=\"" from "\"", "android:versionCode=\"" to "\"")
+				if (/>[^<]*$/) seen = 1
+			}
+			print
+		}
+	' "$manifest" > "$work/manifest.xml" ||
 		die "could not rewrite the version code in $apk_path"
-	if ! grep -q "android:versionCode=\"$to\"" "$manifest"; then
-		# The substitution is the one step that depends on how apktool happens
-		# to spell the attribute, so the decoded element is worth having in the
-		# log when it does not match.
-		warn "the manifest of $(basename "$apk_path") starts with:"
-		head -c 1200 "$manifest" | tr '>' '>\n' | sed 's/^/       /' >&2
-		die "the decoded manifest of $apk_path does not declare version code $to"
+	mv -f "$work/manifest.xml" "$manifest"
+
+	if [[ "$(grep -c "android:versionCode=\"$to\"" "$manifest")" -ne 1 ]]; then
+		# The substitution is the one step that depends on how apktool happens to
+		# spell the attribute, so the decoded manifest is worth having in the log
+		# when it does not take.
+		warn "the decoded manifest of $(basename "$apk_path") looks like this:"
+		awk '{ printf "%4d| %.180s\n", NR, $0 }' "$manifest" |
+			head -n 20 | sed 's/^/       /' >&2
+		warn "and it declares these version codes:"
+		grep -n 'versionCode' "$manifest" |
+			cut -c1-200 | sed 's/^/       /' >&2
+		die "the decoded manifest of $apk_path does not declare version code $to once"
 	fi
 
 	apktool build --output "$work/rebuilt.apk" "$work/unpacked" > /dev/null ||
