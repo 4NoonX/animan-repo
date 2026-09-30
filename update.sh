@@ -5,7 +5,7 @@
 #
 # Requirements (all packaged for Debian/Ubuntu):
 #
-#   aapt apktool apksigner curl dwebp fdroidserver jq zipalign
+#   aapt aapt2 apktool apksigner curl dwebp fdroidserver jq zipalign
 #
 # Optional environment variables:
 #
@@ -330,9 +330,20 @@ rewrite_version_code() {
 
 	work=$(mktemp -d)
 
+	# apktool is chatty and its real error only shows up in the middle of a few
+	# thousand resource warnings, so its output is kept for a failing run rather
+	# than thrown away. aapt2 is asked for explicitly: aapt v1 rejects resources
+	# out of a modern APK, and Debian's apktool falls back to whatever aapt it
+	# finds on $PATH.
+	apktool_log() {
+		warn "apktool $1 $(basename "$apk_path") failed:"
+		tail -n 25 "$work/apktool.log" | sed 's/^/       /' >&2
+		die "could not $1 $(basename "$apk_path")"
+	}
+
 	log "$app_id: rewriting the version code of $(basename "$apk_path") $from -> $to"
-	apktool decode --force --output "$work/unpacked" "$apk_path" > /dev/null ||
-		die "could not decode $(basename "$apk_path")"
+	apktool decode --force --use-aapt2 --output "$work/unpacked" \
+		"$apk_path" > "$work/apktool.log" 2>&1 || apktool_log decode
 
 	# apktool takes the version code out of the manifest and records it in
 	# apktool.yml, which is where it reads it back from when it rebuilds. That
@@ -341,8 +352,8 @@ rewrite_version_code() {
 	# disagree and the build would be rejected.
 	rewrite_version_field "$work/unpacked/apktool.yml" "$to"
 
-	apktool build --output "$work/rebuilt.apk" "$work/unpacked" > /dev/null ||
-		die "could not rebuild $(basename "$apk_path")"
+	apktool build --use-aapt2 --output "$work/rebuilt.apk" \
+		"$work/unpacked" > "$work/apktool.log" 2>&1 || apktool_log build
 
 	# The alignment has to happen before signing, never after.
 	zipalign -p -f 4 "$work/rebuilt.apk" "$work/aligned.apk" ||
@@ -435,7 +446,7 @@ publish_repo_icon() {
 main() {
 	local tool
 
-	for tool in aapt apktool apksigner curl dwebp fdroid jq mktemp zipalign; do
+	for tool in aapt aapt2 apktool apksigner curl dwebp fdroid jq mktemp zipalign; do
 		require "$tool"
 	done
 
