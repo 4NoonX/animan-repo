@@ -36,14 +36,14 @@ TOKEN="${TOKEN:-}"
 # Upstream repository every package is built from.
 declare -A UPSTREAM_REPO=(
 	["eu.kanade.tachiyomi.yokai"]="null2264/yokai"
-	["eu.kanade.tachiyomi.yokai.nightlyYokai"]="null2264/yokai-nightly"
+	["eu.kanade.tachiyomi.nightlyYokai"]="null2264/yokai-nightly"
 )
 
 # Repository the icon and the screenshots are taken from. Both flavours use
 # the assets of the main repository.
 declare -A ASSET_REPO=(
 	["eu.kanade.tachiyomi.yokai"]="null2264/yokai"
-	["eu.kanade.tachiyomi.yokai.nightlyYokai"]="null2264/yokai"
+	["eu.kanade.tachiyomi.nightlyYokai"]="null2264/yokai"
 )
 
 # Yōkai Nightly reuses the Android version code of the stable release, so every
@@ -53,12 +53,12 @@ declare -A ASSET_REPO=(
 # "r<number of commits in master>" and which grows monotonically.
 declare -A VERSION_CODE_FROM_TAG=(
 	["eu.kanade.tachiyomi.yokai"]="no"
-	["eu.kanade.tachiyomi.yokai.nightlyYokai"]="yes"
+	["eu.kanade.tachiyomi.nightlyYokai"]="yes"
 )
 
 declare -a APP_IDS=(
 	"eu.kanade.tachiyomi.yokai"
-	"eu.kanade.tachiyomi.yokai.nightlyYokai"
+	"eu.kanade.tachiyomi.nightlyYokai"
 )
 
 log() { printf '\033[0;34m==>\033[0m %s\n' "$*"; }

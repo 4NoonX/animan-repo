@@ -19,7 +19,7 @@ Add it to your F-Droid client, then install Yōkai and/or Yōkai Nightly from it
 | App | Package | Upstream |
 | --- | --- | --- |
 | Yōkai | `eu.kanade.tachiyomi.yokai` | [null2264/yokai](https://github.com/null2264/yokai/releases) |
-| Yōkai Nightly | `eu.kanade.tachiyomi.yokai.nightlyYokai` | [null2264/yokai-nightly](https://github.com/null2264/yokai-nightly/releases) |
+| Yōkai Nightly | `eu.kanade.tachiyomi.nightlyYokai` | [null2264/yokai-nightly](https://github.com/null2264/yokai-nightly/releases) |
 
 The two can be installed at the same time because upstream gives the nightly
 its own package name. They do not share a database, so a library built up in
