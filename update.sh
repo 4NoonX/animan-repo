@@ -121,7 +121,11 @@ fetch_curl() {
 # "application-label:'Yokai'" for the others, so the caller passes the prefix
 # together with its '=' or ':'.
 badging_field() {
-	sed -n "s/.*$2'\\([^']*\\)'.*/\\1/p" <<< "$1" | head -n 1
+	# The first match is taken with a second sed rather than with `head`, which
+	# stops reading as soon as it has a line: the writer then dies of SIGPIPE and
+	# `set -o pipefail` turns that into a failure. A sed with `1p` reads the whole
+	# input and prints one line of it.
+	sed -n "s/.*$2'\\([^']*\\)'.*/\\1/p" <<< "$1" | sed -n '1p'
 }
 
 # set_yaml_key <key> <value> <file>

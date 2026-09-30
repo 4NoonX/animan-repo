@@ -75,25 +75,52 @@ jobs:
 
       - name: Show the repository fingerprint
         run: |
-          fingerprint=$(keytool -list -v \
+          # `head` is deliberately not used to take the first match: it closes the
+          # pipe as soon as it has one line, and under `set -o pipefail` that turns
+          # into a failure of the whole step, which is how a passing run of this
+          # step failed once for no visible reason.
+          #
+          # A fingerprint that cannot be read is only worth a warning. It is a
+          # convenience for the summary, and the build itself proves the key works
+          # by signing the APKs with it, so nothing is published on the strength of
+          # the value printed here.
+          # `|| true` rather than `|| keystore_info=`: the command substitution has
+          # to keep whatever keytool said even when keytool failed, because that is
+          # what the warning below prints. A pipeline that matches nothing exits
+          # non-zero too, and `set -e` would end the step right there, which is the
+          # other way this step used to fail without a word in the log.
+          keystore_info=$(keytool -list -v \
             -keystore fdroid/keystore.keystore \
             -alias "$KEYALIAS" \
-            -storepass "$KEYSTORE_PASS" \
-            | grep -i 'SHA256:' | head -n 1 | sed 's/.*: //; s/://g')
+            -storepass "$KEYSTORE_PASS" 2>&1) || true
+          fingerprint=$(grep -iE 'SHA-?256' <<< "$keystore_info" \
+            | sed 's/.*: //' | tr -d ' :' | sed -n '1p') || true
+
+          if [ -n "$fingerprint" ]; then
+            {
+              echo "### F-Droid repository fingerprint"
+              echo
+              echo '```'
+              echo "$fingerprint"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::could not read the SHA-256 of the repository key"
+            echo "$keystore_info" | sed 's/^/       /'
+          fi
           {
-            echo "### F-Droid repository fingerprint"
-            echo
-            echo '```'
-            echo "$fingerprint"
-            echo '```'
             echo
             echo "Keystore SHA-256: \`$(sha256sum fdroid/keystore.keystore | cut -d' ' -f1)\`"
             echo
-            echo 'Add \`https://4noonx.github.io/animan-repo/fdroid/repo?fingerprint='"$fingerprint"'\` to your F-Droid client.'
           } >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$fingerprint" ]; then
+            echo 'Add `https://4noonx.github.io/animan-repo/fdroid/repo?fingerprint='"$fingerprint"'` to your F-Droid client.' \
+              >> "$GITHUB_STEP_SUMMARY"
+          fi
         env:
           KEYALIAS: ${{ secrets.KEY_ALIAS }}
           KEYSTORE_PASS: ${{ secrets.KEY_STORE_PASSWORD }}
+
 
       - name: Build the repository
         env:
