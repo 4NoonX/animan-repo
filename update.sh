@@ -437,7 +437,11 @@ update_app() {
 # end up with the same one.
 install_variant() {
 	local app_id="$1" variant="$2" url="$3"
-	local asset="${url##*/}" apk_path="$REPO_DIR/$asset"
+	# These are two declarations on purpose: a single "local asset=... apk_path=$asset"
+	# expands the second word before the first assignment has run, and under
+	# set -u that ends the build on the first variant.
+	local asset="${url##*/}"
+	local apk_path="$REPO_DIR/$asset"
 	local tmp badging package version_code label split nativecode
 
 	log "$app_id: downloading the $variant build, $asset"
