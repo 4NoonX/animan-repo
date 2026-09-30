@@ -60,7 +60,20 @@ def main(argv):
         )
         return 0
 
-    return fail("could not find %s in %s" % (app_id, index))
+    # Say what the index actually holds. A package that has gone missing is
+    # either a typo in the package name or an index that changed shape, and
+    # "could not find it" on its own does not tell those apart.
+    packages = list(tree.getroot().iter("package"))
+    if not packages:
+        children = sorted({child.tag for child in tree.getroot()})
+        return fail(
+            "%s has no <package> element, its top level elements are: %s"
+            % (index, ", ".join(children) or "(none)")
+        )
+    return fail(
+        "could not find %s in %s, which holds: %s"
+        % (app_id, index, ", ".join(package.get("id", "(no id)") for package in packages))
+    )
 
 
 if __name__ == "__main__":
