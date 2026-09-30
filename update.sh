@@ -338,11 +338,19 @@ rewrite_version_code() {
 	# first, so the first android:versionCode in the file is the app's own. The
 	# activity and provider entries further down carry platform version codes
 	# that must not move, which is why the substitution is not global.
-	sed -i "0,/android:versionCode=\"$from\"/s//android:versionCode=\"$to\"/" \
-		"$work/unpacked/AndroidManifest.xml" ||
+	manifest="$work/unpacked/AndroidManifest.xml"
+	[[ -f "$manifest" ]] || die "apktool did not write a manifest for $apk_path"
+
+	sed -i "0,/android:versionCode=\"$from\"/s//android:versionCode=\"$to\"/" "$manifest" ||
 		die "could not rewrite the version code in $apk_path"
-	grep -q "android:versionCode=\"$to\"" "$work/unpacked/AndroidManifest.xml" ||
+	if ! grep -q "android:versionCode=\"$to\"" "$manifest"; then
+		# The substitution is the one step that depends on how apktool happens
+		# to spell the attribute, so the decoded element is worth having in the
+		# log when it does not match.
+		warn "the manifest of $(basename "$apk_path") starts with:"
+		head -c 1200 "$manifest" | tr '>' '>\n' | sed 's/^/       /' >&2
 		die "the decoded manifest of $apk_path does not declare version code $to"
+	fi
 
 	apktool build --output "$work/rebuilt.apk" "$work/unpacked" > /dev/null ||
 		die "could not rebuild $(basename "$apk_path")"
