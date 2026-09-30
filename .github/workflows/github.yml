@@ -101,6 +101,10 @@ jobs:
       - name: Drop the signing material before publishing
         run: |
           rm -f fdroid/keystore.keystore fdroid/config.yml fdroid/keystore.keystore.old
+          # fdroidserver's working files: the APK cache and a second copy of
+          # index-v2.json. They are of no use to a client and the cache is
+          # stale the moment the next release lands.
+          rm -rf fdroid/tmp
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
@@ -111,8 +115,4 @@ jobs:
           # Keep the "fdroid/repo" layout the repository URL is built around,
           # rather than serving its contents off the root of the site.
           destination_dir: fdroid
-          # fdroidserver's working files, including a full second copy of
-          # index-v2.json, have no business being published.
-          excludes: |
-            tmp/**
           force_orphan: true
