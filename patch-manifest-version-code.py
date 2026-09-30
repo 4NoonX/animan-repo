@@ -46,6 +46,11 @@ INTEGER_TYPES = (TYPE_INT_HEX, TYPE_INT_DEC)
 
 ATTRIBUTE_SIZE = 20
 
+# A string reference of 0xFFFFFFFF means "no string": the attribute carries no
+# namespace, which is how the manifest declares its own package and its
+# android:versionName, so it has to be read as a value rather than as an index.
+NO_INDEX = 0xFFFFFFFF
+
 MAX_VERSION_CODE = 2147483647
 
 # What a v1 signature consists of. The signature is dead once the manifest has
@@ -146,6 +151,8 @@ def read_version_code(manifest, offset, header_size, strings):
     # The chunk header is followed by the line number and the comment, and the
     # element's namespace and name come after those.
     namespace, name = struct.unpack_from("<II", manifest, offset + header_size)
+    if name >= len(strings):
+        fail("an element of the manifest points outside the string pool")
     if strings[name] != MANIFEST_ELEMENT:
         return None
 
@@ -155,16 +162,25 @@ def read_version_code(manifest, offset, header_size, strings):
     if attribute_size < ATTRIBUTE_SIZE:
         fail("the manifest has an attribute of %d bytes, which is too small" % attribute_size)
 
+    # The attributes start at attribute_start, counted from the start of the
+    # element's attribute structure, which is the node's body, and not from the
+    # start of the chunk.
     for index in range(attribute_count):
-        start = offset + attribute_start + index * attribute_size
+        start = offset + header_size + attribute_start + index * attribute_size
         attribute_namespace, attribute_name = struct.unpack_from("<II", manifest, start)
+        if attribute_name >= len(strings):
+            fail(
+                "attribute %d of the manifest element points outside the string "
+                "pool" % index
+            )
         if strings[attribute_name] != VERSION_CODE_ATTRIBUTE:
             continue
-        if strings[attribute_namespace] != ANDROID_NAMESPACE:
-            fail(
-                "the version code is in the %s namespace, not the Android one"
-                % strings[attribute_namespace]
-            )
+        if (
+            attribute_namespace == NO_INDEX
+            or attribute_namespace >= len(strings)
+            or strings[attribute_namespace] != ANDROID_NAMESPACE
+        ):
+            fail("the version code is not in the Android namespace")
 
         size, reserved, data_type = struct.unpack_from("<HBB", manifest, start + 12)
         if size != TYPED_VALUE_SIZE or reserved != 0:
