@@ -85,6 +85,32 @@ declare -a APP_IDS=(
 	"eu.kanade.tachiyomi.nightlyYokai"
 )
 
+# The APK variants published for every package. Upstream builds one APK per ABI
+# plus a universal one, and all of them carry the same version code, which is
+# what lets an F-Droid client pick the one that fits the device.
+#
+# "universal" is always published: it is the only variant that runs on every
+# device, so it is the fallback for anything the client cannot match, including
+# clients too old to know about variants at all. arm64-v8a is published next to
+# it because that is the ABI of effectively every phone worth installing on, and
+# it is roughly a third of the size. The remaining ABIs are deliberately left
+# out: a 32 bit armeabi-v7a device simply downloads the universal build, which
+# is a larger download but never a broken one.
+#
+# The variants are published for both packages, so the two always look the same.
+declare -a VARIANTS=(
+	"universal"
+	"arm64-v8a"
+)
+
+# The ABI a variant is built for, "universal" being the empty string. This is
+# what the asset is named after, and what is checked against the native code the
+# APK itself declares.
+declare -A VARIANT_ABI=(
+	["universal"]=""
+	["arm64-v8a"]="arm64-v8a"
+)
+
 log() { printf '\033[0;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[0;33mwarning:\033[0m %s\n' "$*" >&2; }
 die() { printf '\033[0;31merror:\033[0m %s\n' "$*" >&2; exit 1; }
@@ -126,6 +152,99 @@ badging_field() {
 	# `set -o pipefail` turns that into a failure. A sed with `1p` reads the whole
 	# input and prints one line of it.
 	sed -n "s/.*$2'\\([^']*\\)'.*/\\1/p" <<< "$1" | sed -n '1p'
+}
+
+# nativecode_field "<aapt dump badging output>"
+#
+# Collects every ABI the APK declares as one comma separated list. The values are
+# quoted one after another, and whether aapt puts them all on a single
+# "native-code:" line or on a line each depends on the build tools, so the commas
+# are turned into line breaks first and both layouts end up the same way. Joining
+# with awk rather than with paste keeps the tool list of the script as it is.
+nativecode_field() {
+	sed -n 's/^[[:space:]]*native-code:[[:space:]]*//p' <<< "$1" |
+		tr ',' '\n' |
+		sed -n "s/^[[:space:]]*'\([^']*\)'.*/\\1/p" |
+		awk 'NR > 1 { printf "," } { printf "%s", $0 }'
+}
+
+# select_asset <release json> <tag> <variant>
+#
+# Prints the download url of one variant of a release, and nothing if the
+# release does not have it. Upstream names the universal build after the tag
+# alone, "yokai-r6433.apk", and every other variant after the ABI it is built
+# for, "yokai-arm64-v8a-r6433.apk", so the name is derived rather than matched
+# against a list of ABIs: an ABI this repository does not publish then simply has
+# no asset to find.
+select_asset() {
+	local release_json="$1" tag="$2" variant="$3"
+
+	if [[ "$variant" != "universal" ]]; then
+		local abi="${VARIANT_ABI[$variant]:-}"
+
+		# A variant that is not in VARIANT_ABI is not published, so it has no asset.
+		# Returning nothing here rather than dereferencing an unset key keeps a
+		# typo in the variant list from taking the whole run down.
+		[[ -n "$abi" ]] || return 0
+
+		jq -r --arg name "yokai-$abi-$tag.apk" \
+			'[.assets[] | select(.name == $name)][0].browser_download_url // empty' \
+			"$release_json"
+		return
+	fi
+
+	# The universal build is named after the tag alone. If that name has gone, any
+	# APK that is not named after an ABI or a build type is taken as the universal
+	# one, which is what the several tens of megabytes of each of the others says
+	# they are not.
+	local exact
+	exact=$(jq -r --arg name "yokai-$tag.apk" \
+		'[.assets[] | select(.name == $name)][0].browser_download_url // empty' \
+		"$release_json")
+	if [[ -n "$exact" ]]; then
+		printf '%s' "$exact"
+		return
+	fi
+
+	warn "no 'yokai-$tag.apk' asset, looking for a build that is not named after an ABI"
+	jq -r '[.assets[]
+		| select(.name | test("\\.apk$"))
+		| select(.name | test("arm64-v8a|armeabi-v7a|x86_64|x86|debug"; "i") | not)
+	][0].browser_download_url // empty' "$release_json"
+}
+
+# check_nativecode <variant> <apk file name> "<the ABIs the APK declares>"
+#
+# The asset name says which ABI a variant is, but the name is upstream's word
+# for it, so what the APK itself declares is what is checked. For the universal
+# build it is the stronger of the two checks: that build is the fallback for
+# every device, so it has to carry the ABIs that are also published on their own.
+check_nativecode() {
+	local variant="$1" asset="$2" actual="$3"
+
+	if [[ -z "$actual" ]]; then
+		warn "$asset declares no native code, a client may refuse to install it"
+		return
+	fi
+
+	if [[ "$variant" != "universal" ]]; then
+		local abi="${VARIANT_ABI[$variant]:-}"
+		[[ "$actual" == "$abi" ]] ||
+			die "$asset should be built for $abi alone but declares $actual"
+		return
+	fi
+
+	local published wanted
+	for published in "${VARIANTS[@]}"; do
+		wanted="${VARIANT_ABI[$published]}"
+		if [[ -z "$wanted" ]]; then
+			continue
+		fi
+		if [[ ",$actual," != *",$wanted,"* ]]; then
+			die "$asset is the universal build but does not declare $wanted," \
+				"which is published as a variant of its own"
+		fi
+	done
 }
 
 # set_yaml_key <key> <value> <file>
@@ -232,8 +351,8 @@ update_app() {
 	local upstream="${UPSTREAM_REPO[$app_id]}"
 	local asset_repo="${ASSET_REPO[$app_id]}"
 	local metadata="$METADATA_DIR/$app_id.yml"
-	local release_json tag asset apk_url apk_path tmp
-	local badging apk_package apk_version_code apk_version_name apk_label version_code
+	local release_json tag variant url version_code apk_path
+	local -a apk_paths=() upstream_codes=() distinct_codes=()
 
 	[[ -f "$metadata" ]] || die "missing metadata file $metadata"
 
@@ -244,44 +363,34 @@ update_app() {
 	tag=$(jq -r '.tag_name' "$release_json")
 	[[ -n "$tag" && "$tag" != "null" ]] || die "$upstream has no published release"
 
-	# Upstream names the universal build "yokai-<tag>.apk" and every other
-	# asset after an ABI it is built for.
-	apk_url=$(jq -r --arg name "yokai-$tag.apk" \
-		'[.assets[] | select(.name == $name)][0].browser_download_url // empty' "$release_json")
+	# Every variant has to carry the version code the index is generated from, so
+	# the code is decided once here, from the tag or from the universal APK, and
+	# every APK is then made to declare it. The variants of one release already
+	# agree upstream, which is checked rather than assumed.
+	for variant in "${VARIANTS[@]}"; do
+		url=$(select_asset "$release_json" "$tag" "$variant")
 
-	if [[ -z "$apk_url" ]]; then
-		warn "no 'yokai-$tag.apk' asset, looking for an ABI independent build instead"
-		apk_url=$(jq -r '[.assets[]
-			| select(.name | test("\\.apk$"))
-			| select(.name | test("arm64-v8a|armeabi-v7a|x86_64|x86|debug"; "i") | not)
-		][0].browser_download_url // empty' "$release_json")
-	fi
+		if [[ -z "$url" ]]; then
+			if [[ "$variant" == "universal" ]]; then
+				die "the $tag release of $upstream has no universal APK"
+			fi
+			# An optional variant that upstream stopped shipping is not a reason
+			# to stop publishing the package: the universal build is still there
+			# for every device.
+			warn "$upstream ships no $variant build in $tag, publishing the universal one only"
+			continue
+		fi
 
-	[[ -n "$apk_url" ]] || die "no suitable APK asset in the $tag release of $upstream"
+		install_variant "$app_id" "$variant" "$url"
+		apk_paths+=("$REPO_DIR/${url##*/}")
+		upstream_codes+=("$LAST_UPSTREAM_VERSION_CODE")
+	done
 
-	asset="${apk_url##*/}"
-	apk_path="$REPO_DIR/$asset"
+	[[ "${#apk_paths[@]}" -gt 0 ]] || die "no APK to publish for $app_id"
 
-	log "$app_id: downloading $asset"
-	tmp=$(mktemp)
-	fetch_curl -o "$tmp" "$apk_url"
-	mv "$tmp" "$apk_path"
-
-	log "$app_id: reading the badging of $asset"
-	badging=$(aapt dump badging "$apk_path")
-	apk_package=$(badging_field "$badging" "package: name=")
-	apk_version_code=$(badging_field "$badging" "versionCode=")
-	apk_version_name=$(badging_field "$badging" "versionName=")
-	apk_label=$(badging_field "$badging" "application-label:")
-
-	[[ -n "$apk_package" && -n "$apk_version_code" ]] ||
-		die "could not parse the badging of $asset"
-	[[ -n "$apk_label" ]] || apk_label="$app_id"
-
-	[[ "$apk_package" == "$app_id" ]] ||
-		die "expected $app_id but $asset declares $apk_package"
-
-	log "$app_id: $apk_label $apk_version_name, upstream version code $apk_version_code"
+	read -r -a distinct_codes <<< "$(printf '%s\n' "${upstream_codes[@]}" | sort -u)"
+	[[ "${#distinct_codes[@]}" -eq 1 ]] ||
+		die "the variants of $tag declare different version codes: ${upstream_codes[*]}"
 
 	if [[ "${VERSION_CODE_FROM_TAG[$app_id]}" == "yes" ]]; then
 		version_code="${tag#r}"
@@ -289,15 +398,25 @@ update_app() {
 			die "expected a nightly tag of the form r<number>, got $tag"
 		log "$app_id: publishing it as version code $version_code"
 	else
-		version_code="$apk_version_code"
+		version_code="${upstream_codes[0]}"
 	fi
 
 	# fdroidserver takes the version code for the index out of the APK, so an APK
 	# that keeps upstream's code would be published under that code no matter
-	# what the metadata or the release tag say.
+	# what the metadata or the release tag say, and a variant left on a different
+	# code would be offered as its own update instead of as the same release.
 	if [[ "${REPACK_APK[$app_id]}" == "yes" ]]; then
-		rewrite_version_code "$app_id" "$apk_path" "$apk_version_code" "$version_code"
+		for apk_path in "${apk_paths[@]}"; do
+			rewrite_version_code "$app_id" "$apk_path" "${upstream_codes[0]}" "$version_code"
+		done
 	fi
+
+	log "$app_id: publishing ${#apk_paths[@]} variant(s):"
+	for apk_path in "${apk_paths[@]}"; do
+		log "  $(basename "$apk_path")"
+	done
+
+	prune_unpublished_apks "$app_id" "${apk_paths[@]}"
 
 	log "$app_id: pointing the metadata at $tag"
 	set_yaml_key "CurrentVersion" "$tag" "$metadata"
@@ -307,6 +426,96 @@ update_app() {
 	refresh_assets "$app_id" "$asset_repo"
 
 	rm -f "$release_json"
+}
+
+# install_variant <package> <variant> <download url>
+#
+# Downloads one variant, checks that it is the APK it is supposed to be, and
+# leaves it in the repository directory. The version code it declares is returned
+# in LAST_UPSTREAM_VERSION_CODE for the caller, which is the only place that
+# decides what the published version code is: every variant of a release has to
+# end up with the same one.
+install_variant() {
+	local app_id="$1" variant="$2" url="$3"
+	local asset="${url##*/}" apk_path="$REPO_DIR/$asset"
+	local tmp badging package version_code label split nativecode
+
+	log "$app_id: downloading the $variant build, $asset"
+	tmp=$(mktemp)
+	fetch_curl -o "$tmp" "$url"
+	mv "$tmp" "$apk_path"
+
+	log "$app_id: reading the badging of $asset"
+	badging=$(aapt dump badging "$apk_path")
+	package=$(badging_field "$badging" "package: name=")
+	version_code=$(badging_field "$badging" "versionCode=")
+	label=$(badging_field "$badging" "application-label:")
+
+	[[ -n "$package" && -n "$version_code" ]] ||
+		die "could not parse the badging of $asset"
+	[[ -n "$label" ]] || label="$app_id"
+
+	[[ "$package" == "$app_id" ]] ||
+		die "expected $app_id but $asset declares $package"
+
+	# An asset that turned into a real split would have to be installed together
+	# with the rest of its set, so publishing it on its own would leave a device
+	# that picked it with a broken app. The sizes upstream ships these at (a few
+	# tens of MB, one per ABI) say they are standalone builds of the whole app,
+	# and this keeps that true.
+	split=$(badging_field "$badging" "split=")
+	[[ -z "$split" ]] ||
+		die "$asset is the split $split of $app_id, not a standalone build"
+
+	nativecode=$(nativecode_field "$badging")
+	check_nativecode "$variant" "$asset" "$nativecode"
+
+	log "$app_id: $label $(badging_field "$badging" "versionName=")," \
+		"upstream version code $version_code"
+
+	LAST_UPSTREAM_VERSION_CODE="$version_code"
+}
+
+# Removes any APK left in the repository directory by an earlier run that is not
+# one of the ones just published. CI starts from a fresh checkout every time, so
+# this only ever has anything to do for a local run, where a leftover would
+# otherwise be indexed next to the current version.
+prune_unpublished_apks() {
+	local app_id="$1"
+	shift
+
+	# The published paths are reduced to file names first, because that is what the
+	# directory listing below yields, and comparing a path against a file name
+	# would match nothing and take every APK with it.
+	local keep=" " name
+	for name in "$@"; do
+		keep+="${name##*/} "
+	done
+
+	local apk
+	local -a stale=()
+
+	# An if is used instead of `[[ … ]] && continue` on purpose: a test that fails
+	# as the last command of the loop body would make the whole script exit under
+	# set -e, taking the run down for a leftover file that is not even an error.
+	while IFS= read -r apk; do
+		[[ -n "$apk" ]] || continue
+		if [[ "$keep" != *" ${apk##*/} "* ]]; then
+			stale+=("$apk")
+		fi
+	done < <(find "$REPO_DIR" -maxdepth 1 -name '*.apk' -type f)
+
+	if (( ${#stale[@]} == 0 )); then
+		return
+	fi
+
+	log "$app_id: removing ${#stale[@]} APK(s) from an earlier run"
+	for apk in "${stale[@]}"; do
+		log "  $(basename "$apk")"
+		rm -f "$apk"
+	done
+
+	return 0
 }
 
 # Sets a new version code in the APK and signs the result with the repository

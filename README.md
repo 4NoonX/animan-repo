@@ -2,7 +2,8 @@
 
 The [F-Droid](https://f-droid.org/) repository for
 [Yōkai](https://github.com/null2264/yokai) and its nightly builds. Both
-packages are picked up automatically from the upstream GitHub releases. The
+packages are picked up automatically from the upstream GitHub releases, each as
+a universal and an `arm64-v8a` build that your client picks between. The
 nightly has its version code rewritten and is signed with this repository's
 key, the stable build is published exactly as upstream released it. See
 [Things worth knowing](#things-worth-knowing) for what that means for
@@ -29,8 +30,12 @@ one is not visible in the other.
 
 ## Things worth knowing
 
-- **Only the universal build is published.** Upstream also builds per-ABI
-  APKs, those stay on the upstream releases page.
+- **Two builds are published for each app.** The universal one and an `arm64-v8a`
+  one, which is what nearly every phone runs and is roughly a third of the size.
+  Your client picks the matching one by itself, so there is nothing to choose.
+  A 32 bit or an x86 device, and any client too old to know about variants, gets
+  the universal build, so nothing is left without a working download. Upstream's
+  other per-ABI APKs stay on its releases page.
 - **The nightly APKs are re-signed.** Upstream keeps the Android version code of
   every nightly at the version code of the last stable release, so F-Droid would
   never see a new build. `update.sh` therefore publishes the nightlies under the
@@ -80,13 +85,17 @@ fdroid/repo/                   generated: APKs, icons and screenshots
 `update.sh` runs every day and on every change to the metadata:
 
 1. reads `releases/latest` of `null2264/yokai` and `null2264/yokai-nightly`,
-2. downloads the universal APK of that release,
-3. reads the package name, version code and version name out of the APK with
-   `aapt` and refuses to continue if the package name is not the expected one,
+2. downloads the universal and the `arm64-v8a` APK of that release, and refuses
+   to publish an asset that declares a different package, turns out to be a split
+   of the app, or is not built for the ABI it is named after,
+3. reads the package name, version code, version name and native code out of
+   every APK with `aapt`,
 4. for the nightly, rewrites the four bytes of the version code in the manifest
-   with `patch-manifest-version-code.py`, re-aligns it, signs it again with the
-   repository key and checks with `aapt` that the result still is the expected
-   package and version code,
+   of each variant with `patch-manifest-version-code.py`, re-aligns it, signs it
+   again with the repository key and checks with `aapt` that the result still is
+   the expected package and version code. Every variant of a release is given the
+   same version code, which is what makes them variants of one release to a
+   client rather than separate updates,
 5. updates `CurrentVersion`, `CurrentVersionCode` and the changelog in
    `fdroid/metadata`,
 6. pulls the icon and the screenshots from the upstream repository,

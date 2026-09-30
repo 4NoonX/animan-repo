@@ -5,7 +5,7 @@ AuthorName: null2264
 Categories:
     - Reading
 CurrentVersion: v1.10.2
-CurrentVersionCode: 162
+CurrentVersionCode: 161
 Description: |
     Yōkai is a free and open source manga reader for Android, forked from
     Tachiyomi/Mihon. It ships without any content and only talks to the
