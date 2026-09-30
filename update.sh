@@ -311,6 +311,18 @@ pin_index_version_code() {
 	fi
 }
 
+# fdroidserver generates a signed index per format, and clients read whichever
+# format they support, so the published set is worth reporting: a version code
+# corrected in only one of these files is one most clients never see.
+log_index_files() {
+	local file
+
+	for file in "$REPO_DIR"/index* "$REPO_DIR"/entry*; do
+		[[ -f "$file" ]] || continue
+		log "$(basename "$file") ($(stat -c %s "$file") bytes)"
+	done
+}
+
 # fdroidserver expects a repository icon at a fixed place and only warns when
 # it is missing, so the upstream app icon is reused for the repository itself.
 publish_repo_icon() {
@@ -355,6 +367,7 @@ main() {
 	# fdroid update replaces a missing repository icon with a generated
 	# placeholder, so the real one goes in afterwards.
 	publish_repo_icon
+	log_index_files
 
 	for app_id in "${APP_IDS[@]}"; do
 		if [[ "${VERSION_CODE_FROM_TAG[$app_id]}" == "yes" ]]; then
