@@ -31,17 +31,19 @@ one is not visible in the other.
 
 - **Only the universal build is published.** Upstream also builds per-ABI
   APKs, those stay on the upstream releases page.
-- **The nightly APKs are rebuilt and re-signed.** Upstream keeps the Android
-  version code of every nightly at the version code of the last stable release,
-  so F-Droid would never see a new build. `update.sh` therefore publishes the
-  nightlies under the number in the release tag, which upstream builds as
-  `r<number of commits>` and which only ever grows. fdroidserver only publishes
-  the version code it reads out of an APK and has no metadata key to override
-  it with, so the manifest is rewritten with `apktool` and the result is signed
-  again with this repository's key. Everything else in the APK is left as
-  upstream built it.
+- **The nightly APKs are re-signed.** Upstream keeps the Android version code of
+  every nightly at the version code of the last stable release, so F-Droid would
+  never see a new build. `update.sh` therefore publishes the nightlies under the
+  number in the release tag, which upstream builds as `r<number of commits>` and
+  which only ever grows. fdroidserver only publishes the version code it reads
+  out of an APK and has no metadata key to override it with, so the four bytes
+  of that number in the APK's binary manifest are rewritten and the result is
+  signed again with this repository's key.
 
-  The consequence is that these are not the exact binaries upstream released.
+  Nothing else in the APK changes: the resources, the code and the version name
+  are exactly what upstream built, because the manifest is patched in place
+  rather than rebuilt.
+
   Android refuses to install a differently signed APK over an existing one, so
   installing a nightly from here over a nightly from upstream means uninstalling
   first, and that loses the local database. The stable app is not touched and
@@ -56,6 +58,7 @@ one is not visible in the other.
   therefore tagged with the `GooglePlay` anti-feature, and with `NonFreeNet`
   because the sources the app connects to are chosen by the user and many of
   them are not free services.
+
 - **Extensions are not part of this repository.** They are downloaded from
   the extension repository built into the app, and each one decides which site
   the app talks to.
@@ -69,6 +72,7 @@ one is not visible in the other.
 .github/workflows/github.yml   builds and deploys the repository to gh-pages
 config.yml                     F-Droid server configuration, minus the secrets
 update.sh                      downloads the releases and regenerates the metadata
+patch-manifest-version-code.py sets the version code inside a downloaded APK
 fdroid/metadata/*.yml          per app metadata, descriptions, names, trackers
 fdroid/repo/                   generated: APKs, icons and screenshots
 ```
@@ -79,9 +83,10 @@ fdroid/repo/                   generated: APKs, icons and screenshots
 2. downloads the universal APK of that release,
 3. reads the package name, version code and version name out of the APK with
    `aapt` and refuses to continue if the package name is not the expected one,
-4. for the nightly, rewrites the version code in the manifest with `apktool`,
-   re-aligns it, signs it again with the repository key and checks with `aapt`
-   that the result still is the expected package and version code,
+4. for the nightly, rewrites the four bytes of the version code in the manifest
+   with `patch-manifest-version-code.py`, re-aligns it, signs it again with the
+   repository key and checks with `aapt` that the result still is the expected
+   package and version code,
 5. updates `CurrentVersion`, `CurrentVersionCode` and the changelog in
    `fdroid/metadata`,
 6. pulls the icon and the screenshots from the upstream repository,

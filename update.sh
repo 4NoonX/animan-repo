@@ -5,7 +5,7 @@
 #
 # Requirements (all packaged for Debian/Ubuntu):
 #
-#   aapt aapt2 apktool apksigner curl dwebp fdroidserver jq zipalign
+#   aapt apksigner curl dwebp fdroidserver jq python3 zipalign
 #
 # Optional environment variables:
 #
@@ -15,8 +15,8 @@
 # The script expects fdroid/config.yml and fdroid/keystore.keystore to already
 # exist. Both are materialised by .github/workflows/github.yml, which also
 # provides $TOKEN. The key material is needed at runtime as well, because the
-# APKs whose manifest gets rewritten are signed again with it, so
-# $KEYALIAS, $KEYSTORE_PASS and $KEY_PASSWORD have to be in the environment.
+# APKs whose version code is changed are signed again with it, so $KEYALIAS,
+# $KEYSTORE_PASS and $KEY_PASSWORD have to be in the environment.
 
 set -euo pipefail
 
@@ -305,18 +305,17 @@ update_app() {
 	rm -f "$release_json"
 }
 
-# Rebuilds the APK around a new version code and signs the result with the
-# repository key.
+# Sets a new version code in the APK and signs the result with the repository
+# key.
 #
 # Android refuses to install a differently signed APK over an existing one, so
-# rebuilding means the result is not the binary upstream released: anyone who
-# already has an upstream signed build of the same package has to uninstall it
-# first. That is a deliberate trade for a version code that lets F-Droid clients
-# see the nightly as an update, and it only applies to the packages listed in
-# REPACK_APK.
+# this means the result is not the binary upstream released: anyone who already
+# has an upstream signed build of the same package has to uninstall it first.
+# That is a deliberate trade for a version code that lets F-Droid clients see the
+# nightly as an update, and it only applies to the packages in REPACK_APK.
 rewrite_version_code() {
 	local app_id="$1" apk_path="$2" from="$3" to="$4"
-	local work badging
+	local work badging output patched
 
 	if [[ "$from" == "$to" ]]; then
 		log "$app_id: its version code is already $to, the APK is left alone"
@@ -324,40 +323,27 @@ rewrite_version_code() {
 	fi
 
 	[[ -n "${KEYALIAS:-}" && -n "${KEYSTORE_PASS:-}" && -n "${KEY_PASSWORD:-}" ]] ||
-		die "the repository key is not available, cannot rebuild $apk_path"
+		die "the repository key is not available, cannot re-sign $apk_path"
 	[[ -f "$FDROID_DIR/keystore.keystore" ]] ||
 		die "$FDROID_DIR/keystore.keystore is missing, cannot sign $apk_path"
+	[[ -f "$SCRIPT_DIR/patch-manifest-version-code.py" ]] ||
+		die "$SCRIPT_DIR/patch-manifest-version-code.py is missing"
 
 	work=$(mktemp -d)
+	patched="$apk_path-patched.apk"
 
-	# apktool is chatty and its real error only shows up in the middle of a few
-	# thousand resource warnings, so its output is kept for a failing run rather
-	# than thrown away. aapt2 is asked for explicitly: aapt v1 rejects resources
-	# out of a modern APK, and Debian's apktool falls back to whatever aapt it
-	# finds on $PATH.
-	apktool_log() {
-		warn "apktool $1 $(basename "$apk_path") failed:"
-		tail -n 25 "$work/apktool.log" | sed 's/^/       /' >&2
-		die "could not $1 $(basename "$apk_path")"
-	}
-
-	log "$app_id: rewriting the version code of $(basename "$apk_path") $from -> $to"
-	apktool decode --force --use-aapt2 --output "$work/unpacked" \
-		"$apk_path" > "$work/apktool.log" 2>&1 || apktool_log decode
-
-	# apktool takes the version code out of the manifest and records it in
-	# apktool.yml, which is where it reads it back from when it rebuilds. That
-	# is the field to rewrite, and the manifest is left alone: on a version of
-	# apktool that does keep the attribute in the manifest, the two would
-	# disagree and the build would be rejected.
-	rewrite_version_field "$work/unpacked/apktool.yml" "$to"
-
-	apktool build --use-aapt2 --output "$work/rebuilt.apk" \
-		"$work/unpacked" > "$work/apktool.log" 2>&1 || apktool_log build
+	log "$app_id: setting the version code of $(basename "$apk_path") $from -> $to"
+	# Only the four bytes of the version code in the binary manifest change, so
+	# every other byte of the APK, and every resource in it, is upstream's.
+	if ! output=$(python3 "$SCRIPT_DIR/patch-manifest-version-code.py" \
+		"$apk_path" "$to" "$from"); then
+		die "could not set the version code of $(basename "$apk_path") to $to"
+	fi
+	log "$app_id: $output"
 
 	# The alignment has to happen before signing, never after.
-	zipalign -p -f 4 "$work/rebuilt.apk" "$work/aligned.apk" ||
-		die "could not align the rebuilt $(basename "$apk_path")"
+	zipalign -p -f 4 "$patched" "$work/aligned.apk" ||
+		die "could not align $(basename "$patched")"
 
 	# The passwords go through the environment rather than the command line so
 	# they do not end up in the process list of the container.
@@ -368,52 +354,24 @@ rewrite_version_code() {
 		--key-pass env:KEY_PASSWORD \
 		--out "$work/signed.apk" \
 		"$work/aligned.apk" ||
-		die "could not sign the rebuilt $(basename "$apk_path")"
+		die "could not sign $(basename "$patched")"
 	apksigner verify --min-sdk-version 26 "$work/signed.apk" ||
-		die "the rebuilt $(basename "$apk_path") does not verify"
+		die "the re-signed $(basename "$apk_path") does not verify"
 
 	# The index is generated out of the badging of whatever ends up in the
 	# repository, so this is the last point where a wrong package or version
 	# code can still be caught before it is published.
 	badging=$(aapt dump badging "$work/signed.apk") ||
-		die "could not read the badging of the rebuilt $(basename "$apk_path")"
+		die "could not read the badging of the re-signed $(basename "$apk_path")"
 	[[ "$(badging_field "$badging" "package: name=")" == "$app_id" ]] ||
-		die "the rebuilt $(basename "$apk_path") is no longer $app_id"
+		die "the re-signed $(basename "$apk_path") is no longer $app_id"
 	[[ "$(badging_field "$badging" "versionCode=")" == "$to" ]] ||
-		die "the rebuilt $(basename "$apk_path") declares version code $(badging_field "$badging" "versionCode=") instead of $to"
+		die "the re-signed $(basename "$apk_path") declares version code $(badging_field "$badging" "versionCode=") instead of $to"
 
 	mv -f "$work/signed.apk" "$apk_path"
+	rm -f "$patched"
 	rm -rf "$work"
 	log "$app_id: $(basename "$apk_path") now declares version code $to and is signed by the repository key"
-}
-
-# Rewrites the versionCode of the versionInfo block in an apktool project file,
-# which is where apktool keeps the version code it decoded out of an APK and
-# where it reads it back from when it rebuilds. The manifest of a decoded APK has
-# no android:versionCode attribute at all, so this is the only place it lives.
-rewrite_version_field() {
-	local project="$1" to="$2"
-
-	[[ -f "$project" ]] ||
-		die "apktool did not write $(basename "$project"), cannot set the version code"
-
-	awk -v to="$to" -v repl="  versionCode: '$to'" '
-		/^versionInfo:/ { info = 1 }
-		/^[^[:space:]#]/ && !/^versionInfo:/ { info = 0 }
-		info && /^[[:space:]]*versionCode:/ { print repl; next }
-		{ print }
-	' "$project" > "$project.new" ||
-		die "could not rewrite the version code in $(basename "$project")"
-
-	if ! grep -q "^  versionCode: '$to'\$" "$project.new"; then
-		# The rewrite is the one step that depends on how apktool lays its project
-		# file out, so the file is worth having in the log in full when it misses.
-		warn "$(basename "$project") looks like this:"
-		sed 's/^/       /' "$project" >&2
-		die "$(basename "$project") has no versionInfo versionCode to rewrite"
-	fi
-
-	mv -f "$project.new" "$project"
 }
 
 # fdroidserver generates a signed index per format and clients read whichever
@@ -446,7 +404,7 @@ publish_repo_icon() {
 main() {
 	local tool
 
-	for tool in aapt aapt2 apktool apksigner curl dwebp fdroid jq mktemp zipalign; do
+	for tool in aapt apksigner curl dwebp fdroid jq mktemp python3 zipalign; do
 		require "$tool"
 	done
 
