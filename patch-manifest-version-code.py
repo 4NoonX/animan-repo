@@ -14,11 +14,12 @@ Rewriting the manifest invalidates the signature, so the caller has to sign the
 result again: Android refuses to install a differently signed APK over an
 existing one.
 
-Usage: patch-manifest-version-code.py APK VERSION_CODE [EXPECTED]
+Usage: patch-manifest-version-code.py [-o OUTPUT] APK VERSION_CODE [EXPECTED]
 
 The patched APK is written next to the original, with .apk replaced by
--patched.apk. EXPECTED, when given, is the version code the APK is expected to
-carry already, and the patch is refused if it carries a different one.
+-patched.apk, unless -o names it. EXPECTED, when given, is the version code the
+APK is expected to carry already, and the patch is refused if it carries a
+different one. An existing file is never overwritten.
 """
 
 import os
@@ -254,11 +255,14 @@ def patch_apk(source, target, version_code, expected=None):
         for info in original.infolist():
             if is_signature(info.filename):
                 continue
-            content = (
-                manifest
-                if info.filename == "AndroidManifest.xml"
-                else original.read(info.filename)
-            )
+            if info.filename == "AndroidManifest.xml":
+                content = manifest
+            else:
+                # The entry is opened through its own ZipInfo rather than read by
+                # name, because a name that appears twice in the archive would
+                # otherwise give the content of the last of the two for both.
+                with original.open(info) as entry:
+                    content = entry.read()
             entries.append((copy_entry(info), content))
 
         dropped = len(names) - len(entries)
@@ -271,15 +275,27 @@ def patch_apk(source, target, version_code, expected=None):
 
 
 def usage():
-    print("usage: patch-manifest-version-code.py APK VERSION_CODE [EXPECTED]", file=sys.stderr)
+    print(
+        "usage: patch-manifest-version-code.py [-o OUTPUT] APK VERSION_CODE [EXPECTED]",
+        file=sys.stderr,
+    )
 
 
 def main(argv):
-    if len(argv) not in (3, 4):
+    arguments = argv[1:]
+    target = None
+    while arguments and arguments[0] == "-o":
+        if len(arguments) < 2:
+            usage()
+            return 1
+        target = arguments[1]
+        arguments = arguments[2:]
+
+    if len(arguments) not in (2, 3):
         usage()
         return 1
 
-    source, raw_version_code = argv[1], argv[2]
+    source, raw_version_code = arguments[0], arguments[1]
     if not raw_version_code.isdigit():
         fail("the version code %r is not a number" % raw_version_code)
     version_code = int(raw_version_code)
@@ -290,11 +306,18 @@ def main(argv):
 
     if not os.path.isfile(source):
         fail("%s does not exist" % source)
-    target = source[:-4] + "-patched.apk" if source.endswith(".apk") else source + "-patched.apk"
+    if target is None:
+        # The name is only a default, because a caller that has to go on to align
+        # and sign the result should say where it wants it rather than have this
+        # script's idea of where that is be the only thing that lines up.
+        if source.endswith(".apk"):
+            target = source[:-4] + "-patched.apk"
+        else:
+            target = source + "-patched.apk"
     if os.path.exists(target):
         fail("%s already exists" % target)
 
-    expected = int(argv[3]) if len(argv) == 4 else None
+    expected = int(arguments[2]) if len(arguments) == 3 else None
 
     dropped = patch_apk(source, target, version_code, expected)
     print(

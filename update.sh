@@ -334,20 +334,22 @@ rewrite_version_code() {
 		die "$SCRIPT_DIR/patch-manifest-version-code.py is missing"
 
 	work=$(mktemp -d)
-	patched="$apk_path-patched.apk"
+	patched="$work/patched.apk"
 
 	log "$app_id: setting the version code of $(basename "$apk_path") $from -> $to"
 	# Only the four bytes of the version code in the binary manifest change, so
-	# every other byte of the APK, and every resource in it, is upstream's.
+	# every other byte of the APK, and every resource in it, is upstream's. The
+	# intermediate is named here rather than left beside the download, so that the
+	# removal of $work at the end is enough to clean it up.
 	if ! output=$(python3 "$SCRIPT_DIR/patch-manifest-version-code.py" \
-		"$apk_path" "$to" "$from"); then
+		-o "$patched" "$apk_path" "$to" "$from"); then
 		die "could not set the version code of $(basename "$apk_path") to $to"
 	fi
 	log "$app_id: $output"
 
 	# The alignment has to happen before signing, never after.
 	zipalign -p -f 4 "$patched" "$work/aligned.apk" ||
-		die "could not align $(basename "$patched")"
+		die "could not align the patched $(basename "$apk_path")"
 
 	# The passwords go through the environment rather than the command line so
 	# they do not end up in the process list of the container.
@@ -358,7 +360,7 @@ rewrite_version_code() {
 		--key-pass env:KEY_PASSWORD \
 		--out "$work/signed.apk" \
 		"$work/aligned.apk" ||
-		die "could not sign $(basename "$patched")"
+		die "could not sign the patched $(basename "$apk_path")"
 	apksigner verify --min-sdk-version 26 "$work/signed.apk" ||
 		die "the re-signed $(basename "$apk_path") does not verify"
 
@@ -373,7 +375,6 @@ rewrite_version_code() {
 		die "the re-signed $(basename "$apk_path") declares version code $(badging_field "$badging" "versionCode=") instead of $to"
 
 	mv -f "$work/signed.apk" "$apk_path"
-	rm -f "$patched"
 	rm -rf "$work"
 	log "$app_id: $(basename "$apk_path") now declares version code $to and is signed by the repository key"
 }
