@@ -69,12 +69,12 @@ declare -A VERSION_CODE_FROM_TAG=(
 	["eu.kanade.tachiyomi.nightlyYokai"]="yes"
 )
 
-# Whether the APK's manifest is rewritten to carry the published version code.
-# Rewriting a manifest breaks its signature, so the APK is signed again with the
-# repository key and is no longer the binary upstream released. This is kept
-# separate from VERSION_CODE_FROM_TAG because taking the version code from the
-# release tag is what decides *which* code is published, while this decides
-# whether the shipped APK has to be rebuilt to match.
+# Whether the APK is rebuilt to carry the published version code. Rebuilding
+# breaks the signature, so the APK is signed again with the repository key and is
+# no longer the binary upstream released. This is kept separate from
+# VERSION_CODE_FROM_TAG because taking the version code from the release tag is
+# what decides *which* code is published, while this decides whether the shipped
+# APK has to be rebuilt to match.
 declare -A REPACK_APK=(
 	["eu.kanade.tachiyomi.yokai"]="no"
 	["eu.kanade.tachiyomi.nightlyYokai"]="yes"
@@ -305,15 +305,15 @@ update_app() {
 	rm -f "$release_json"
 }
 
-# Rewrites the version code in the APK's manifest and signs the result with the
+# Rebuilds the APK around a new version code and signs the result with the
 # repository key.
 #
 # Android refuses to install a differently signed APK over an existing one, so
-# rewriting a manifest means the result is not the binary upstream released:
-# anyone who already has an upstream signed build of the same package has to
-# uninstall it first. That is a deliberate trade for a version code that lets
-# F-Droid clients see the nightly as an update, and it only applies to the
-# packages listed in REPACK_APK.
+# rebuilding means the result is not the binary upstream released: anyone who
+# already has an upstream signed build of the same package has to uninstall it
+# first. That is a deliberate trade for a version code that lets F-Droid clients
+# see the nightly as an update, and it only applies to the packages listed in
+# REPACK_APK.
 rewrite_version_code() {
 	local app_id="$1" apk_path="$2" from="$3" to="$4"
 	local work badging
@@ -334,36 +334,12 @@ rewrite_version_code() {
 	apktool decode --force --output "$work/unpacked" "$apk_path" > /dev/null ||
 		die "could not decode $(basename "$apk_path")"
 
-	# Only the manifest element's own version code is rewritten, which is the
-	# first android:versionCode in the file: the activity and provider entries
-	# further down carry platform version codes of their own that must not move.
-	# The old value is not matched, only the attribute name, so this does not
-	# depend on how apktool happens to render the number it decoded. awk is used
-	# rather than sed because the decoded manifest is not guaranteed to put the
-	# whole <manifest> element on one line.
-	manifest="$work/unpacked/AndroidManifest.xml"
-	[[ -f "$manifest" ]] || die "apktool did not write a manifest for $apk_path"
-
-	awk -v to="$to" '
-		/<manifest/ && !seen { opening = 1 }
-		{
-			if (opening) {
-				gsub(/android:versionCode="[^"]*"/, "android:versionCode=\"" to "\"")
-				if (/>[^<]*$/) seen = 1
-			}
-			print
-		}
-	' "$manifest" > "$work/manifest.xml" ||
-		die "could not rewrite the version code in $apk_path"
-	mv -f "$work/manifest.xml" "$manifest"
-
-	if [[ "$(grep -c "android:versionCode=\"$to\"" "$manifest")" -ne 1 ]]; then
-		# The substitution is the one step that depends on how apktool spells the
-		# attribute, so the decoded element is worth having in the log in full.
-		warn "the attributes of the manifest element of $(basename "$apk_path") are:"
-		grep -o '<manifest[^>]*' "$manifest" | tr -s ' ' '\n' | sed 's/^/       /' >&2
-		die "the decoded manifest of $apk_path does not declare version code $to once"
-	fi
+	# apktool takes the version code out of the manifest and records it in
+	# apktool.yml, which is where it reads it back from when it rebuilds. That
+	# is the field to rewrite, and the manifest is left alone: on a version of
+	# apktool that does keep the attribute in the manifest, the two would
+	# disagree and the build would be rejected.
+	rewrite_version_field "$work/unpacked/apktool.yml" "$to"
 
 	apktool build --output "$work/rebuilt.apk" "$work/unpacked" > /dev/null ||
 		die "could not rebuild $(basename "$apk_path")"
@@ -398,6 +374,35 @@ rewrite_version_code() {
 	mv -f "$work/signed.apk" "$apk_path"
 	rm -rf "$work"
 	log "$app_id: $(basename "$apk_path") now declares version code $to and is signed by the repository key"
+}
+
+# Rewrites the versionCode of the versionInfo block in an apktool project file,
+# which is where apktool keeps the version code it decoded out of an APK and
+# where it reads it back from when it rebuilds. The manifest of a decoded APK has
+# no android:versionCode attribute at all, so this is the only place it lives.
+rewrite_version_field() {
+	local project="$1" to="$2"
+
+	[[ -f "$project" ]] ||
+		die "apktool did not write $(basename "$project"), cannot set the version code"
+
+	awk -v to="$to" -v repl="  versionCode: '$to'" '
+		/^versionInfo:/ { info = 1 }
+		/^[^[:space:]#]/ && !/^versionInfo:/ { info = 0 }
+		info && /^[[:space:]]*versionCode:/ { print repl; next }
+		{ print }
+	' "$project" > "$project.new" ||
+		die "could not rewrite the version code in $(basename "$project")"
+
+	if ! grep -q "^  versionCode: '$to'\$" "$project.new"; then
+		# The rewrite is the one step that depends on how apktool lays its project
+		# file out, so the file is worth having in the log in full when it misses.
+		warn "$(basename "$project") looks like this:"
+		sed 's/^/       /' "$project" >&2
+		die "$(basename "$project") has no versionInfo versionCode to rewrite"
+	fi
+
+	mv -f "$project.new" "$project"
 }
 
 # fdroidserver generates a signed index per format and clients read whichever
