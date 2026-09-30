@@ -18,6 +18,11 @@
 
 set -euo pipefail
 
+# "set -e" exits on a failing command without saying which one, and a silent
+# exit from a three hundred line script is not something to debug from a
+# workflow log.
+trap 'status=$?; printf "\033[0;31merror:\033[0m %s exited with status %d\n" "$BASH_COMMAND" "$status" >&2; exit "$status"' ERR
+
 GITHUB_API="https://api.github.com"
 RAW_GITHUB="https://raw.githubusercontent.com"
 
@@ -295,11 +300,13 @@ pin_index_version_code() {
 
 	[[ -f "$index" ]] || die "$index was not generated"
 
-	current=$(xmlstarlet sel -t -v "//package[@id='$app_id']/versionCode" "$index")
+	current=$(xmlstarlet sel -t -v "//package[@id='$app_id']/versionCode" "$index") ||
+		die "could not read the version code of $app_id out of $index"
 	[[ -n "$current" ]] || die "could not find $app_id in $index"
 
 	if [[ "$current" != "$version_code" ]]; then
-		xmlstarlet ed -L -u "//package[@id='$app_id']/versionCode" -v "$version_code" "$index"
+		xmlstarlet ed -L -u "//package[@id='$app_id']/versionCode" -v "$version_code" "$index" ||
+			die "could not set the version code of $app_id in $index"
 		log "$app_id: index version code corrected from $current to $version_code"
 	fi
 }
@@ -307,9 +314,15 @@ pin_index_version_code() {
 # fdroidserver expects a repository icon at a fixed place and only warns when
 # it is missing, so the upstream app icon is reused for the repository itself.
 publish_repo_icon() {
+	local source="$REPO_DIR/eu.kanade.tachiyomi.yokai/en-US/icon.png"
+	local target="$REPO_DIR/icons/icon.png"
+
+	[[ -f "$source" ]] || { warn "the upstream icon is missing, not publishing a repository icon"; return; }
+
 	mkdir -p "$REPO_DIR/icons"
-	cp -f "$REPO_DIR/eu.kanade.tachiyomi.yokai/en-US/icon.png" "$REPO_DIR/icons/icon.png" ||
-		warn "could not publish a repository icon"
+	cp -f "$source" "$target" || warn "could not publish a repository icon"
+	[[ -f "$target" ]] || { warn "the repository icon is still missing"; return; }
+	log "published the repository icon"
 }
 
 main() {
@@ -331,13 +344,14 @@ main() {
 		update_app "$app_id"
 	done
 
-	publish_repo_icon
-
 	log "running fdroid update"
-	(
-		cd "$FDROID_DIR"
-		fdroid update --pretty --use-date-from-apk
-	)
+	if ! ( cd "$FDROID_DIR" && fdroid update --pretty --use-date-from-apk ); then
+		die "fdroid update failed"
+	fi
+
+	# fdroid update replaces a missing repository icon with a generated
+	# placeholder, so the real one goes in afterwards.
+	publish_repo_icon
 
 	for app_id in "${APP_IDS[@]}"; do
 		if [[ "${VERSION_CODE_FROM_TAG[$app_id]}" == "yes" ]]; then
