@@ -5,7 +5,7 @@
 #
 # Requirements (all packaged for Debian/Ubuntu):
 #
-#   aapt curl dwebp fdroidserver jq python3
+#   aapt apktool apksigner curl dwebp fdroidserver jq zipalign
 #
 # Optional environment variables:
 #
@@ -14,7 +14,9 @@
 #
 # The script expects fdroid/config.yml and fdroid/keystore.keystore to already
 # exist. Both are materialised by .github/workflows/github.yml, which also
-# provides $TOKEN.
+# provides $TOKEN. The key material is needed at runtime as well, because the
+# APKs whose manifest gets rewritten are signed again with it, so
+# $KEYALIAS, $KEYSTORE_PASS and $KEY_PASSWORD have to be in the environment.
 
 set -euo pipefail
 
@@ -60,16 +62,23 @@ declare -A ASSET_REPO=(
 # "r<number of commits in master>" and which grows monotonically.
 #
 # fdroidserver publishes the version code it reads out of the APK and has no
-# metadata key to override it with, so the index is corrected once
-# "fdroid update" has written it. See pin-version-code.py.
+# metadata key to override it with, so the APK itself is rewritten before the
+# index is generated. See rewrite_version_code.
 declare -A VERSION_CODE_FROM_TAG=(
 	["eu.kanade.tachiyomi.yokai"]="no"
 	["eu.kanade.tachiyomi.nightlyYokai"]="yes"
 )
 
-# The version code each package ended up being published under, filled in by
-# update_app and read back by pin_index_version_code.
-declare -A PUBLISHED_VERSION_CODE=()
+# Whether the APK's manifest is rewritten to carry the published version code.
+# Rewriting a manifest breaks its signature, so the APK is signed again with the
+# repository key and is no longer the binary upstream released. This is kept
+# separate from VERSION_CODE_FROM_TAG because taking the version code from the
+# release tag is what decides *which* code is published, while this decides
+# whether the shipped APK has to be rebuilt to match.
+declare -A REPACK_APK=(
+	["eu.kanade.tachiyomi.yokai"]="no"
+	["eu.kanade.tachiyomi.nightlyYokai"]="yes"
+)
 
 declare -a APP_IDS=(
 	"eu.kanade.tachiyomi.yokai"
@@ -279,10 +288,16 @@ update_app() {
 		version_code="$apk_version_code"
 	fi
 
+	# fdroidserver takes the version code for the index out of the APK, so an APK
+	# that keeps upstream's code would be published under that code no matter
+	# what the metadata or the release tag say.
+	if [[ "${REPACK_APK[$app_id]}" == "yes" ]]; then
+		rewrite_version_code "$app_id" "$apk_path" "$apk_version_code" "$version_code"
+	fi
+
 	log "$app_id: pointing the metadata at $tag"
 	set_yaml_key "CurrentVersion" "$tag" "$metadata"
 	set_yaml_key "CurrentVersionCode" "$version_code" "$metadata"
-	PUBLISHED_VERSION_CODE["$app_id"]="$version_code"
 
 	write_changelog "$app_id" "$version_code" "$release_json"
 	refresh_assets "$app_id" "$asset_repo"
@@ -290,30 +305,84 @@ update_app() {
 	rm -f "$release_json"
 }
 
-# F-Droid clients decide whether an update is available by comparing the
-# version code in the index with the one they recorded at install time, so the
-# index is what has to carry the number taken from the release tag. The APK
-# itself is left alone: it is signed by upstream and its manifest still says
-# 162, which only ever shows up as the "version code" line in the app details.
-pin_index_version_code() {
-	local app_id="$1" version_code="$2"
-	local index="$REPO_DIR/index.xml"
-	local output
+# Rewrites the version code in the APK's manifest and signs the result with the
+# repository key.
+#
+# Android refuses to install a differently signed APK over an existing one, so
+# rewriting a manifest means the result is not the binary upstream released:
+# anyone who already has an upstream signed build of the same package has to
+# uninstall it first. That is a deliberate trade for a version code that lets
+# F-Droid clients see the nightly as an update, and it only applies to the
+# packages listed in REPACK_APK.
+rewrite_version_code() {
+	local app_id="$1" apk_path="$2" from="$3" to="$4"
+	local work badging
 
-	[[ -f "$index" ]] || die "$index was not generated"
-
-	if ! output=$(python3 "$SCRIPT_DIR/pin-version-code.py" "$index" "$app_id" "$version_code"); then
-		die "could not publish $app_id as version code $version_code"
+	if [[ "$from" == "$to" ]]; then
+		log "$app_id: its version code is already $to, the APK is left alone"
+		return
 	fi
 
-	if [[ -n "$output" ]]; then
-		log "$output"
-	fi
+	[[ -n "${KEYALIAS:-}" && -n "${KEYSTORE_PASS:-}" && -n "${KEY_PASSWORD:-}" ]] ||
+		die "the repository key is not available, cannot rebuild $apk_path"
+	[[ -f "$FDROID_DIR/keystore.keystore" ]] ||
+		die "$FDROID_DIR/keystore.keystore is missing, cannot sign $apk_path"
+
+	work=$(mktemp -d)
+
+	log "$app_id: rewriting the version code of $(basename "$apk_path") $from -> $to"
+	apktool decode --force --output "$work/unpacked" "$apk_path" > /dev/null ||
+		die "could not decode $(basename "$apk_path")"
+
+	# apktool decodes the manifest to plain text and the manifest element comes
+	# first, so the first android:versionCode in the file is the app's own. The
+	# activity and provider entries further down carry platform version codes
+	# that must not move, which is why the substitution is not global.
+	sed -i "0,/android:versionCode=\"$from\"/s//android:versionCode=\"$to\"/" \
+		"$work/unpacked/AndroidManifest.xml" ||
+		die "could not rewrite the version code in $apk_path"
+	grep -q "android:versionCode=\"$to\"" "$work/unpacked/AndroidManifest.xml" ||
+		die "the decoded manifest of $apk_path does not declare version code $to"
+
+	apktool build --output "$work/rebuilt.apk" "$work/unpacked" > /dev/null ||
+		die "could not rebuild $(basename "$apk_path")"
+
+	# The alignment has to happen before signing, never after.
+	zipalign -p -f 4 "$work/rebuilt.apk" "$work/aligned.apk" ||
+		die "could not align the rebuilt $(basename "$apk_path")"
+
+	# The passwords go through the environment rather than the command line so
+	# they do not end up in the process list of the container.
+	apksigner sign \
+		--ks "$FDROID_DIR/keystore.keystore" \
+		--ks-key-alias "$KEYALIAS" \
+		--ks-pass env:KEYSTORE_PASS \
+		--key-pass env:KEY_PASSWORD \
+		--out "$work/signed.apk" \
+		"$work/aligned.apk" ||
+		die "could not sign the rebuilt $(basename "$apk_path")"
+	apksigner verify --min-sdk-version 26 "$work/signed.apk" ||
+		die "the rebuilt $(basename "$apk_path") does not verify"
+
+	# The index is generated out of the badging of whatever ends up in the
+	# repository, so this is the last point where a wrong package or version
+	# code can still be caught before it is published.
+	badging=$(aapt dump badging "$work/signed.apk") ||
+		die "could not read the badging of the rebuilt $(basename "$apk_path")"
+	[[ "$(badging_field "$badging" "package: name=")" == "$app_id" ]] ||
+		die "the rebuilt $(basename "$apk_path") is no longer $app_id"
+	[[ "$(badging_field "$badging" "versionCode=")" == "$to" ]] ||
+		die "the rebuilt $(basename "$apk_path") declares version code $(badging_field "$badging" "versionCode=") instead of $to"
+
+	mv -f "$work/signed.apk" "$apk_path"
+	rm -rf "$work"
+	log "$app_id: $(basename "$apk_path") now declares version code $to and is signed by the repository key"
 }
 
-# fdroidserver generates a signed index per format, and clients read whichever
-# format they support, so the published set is worth reporting: a version code
-# corrected in only one of these files is one most clients never see.
+# fdroidserver generates a signed index per format and clients read whichever
+# format they support, so the published set is worth reporting: every one of
+# these files has to agree, and none of them can be hand edited afterwards
+# without re-signing all of them.
 log_index_files() {
 	local file
 
@@ -340,12 +409,9 @@ publish_repo_icon() {
 main() {
 	local tool
 
-	for tool in aapt curl dwebp fdroid jq mktemp python3; do
+	for tool in aapt apktool apksigner curl dwebp fdroid jq mktemp zipalign; do
 		require "$tool"
 	done
-
-	[[ -f "$SCRIPT_DIR/pin-version-code.py" ]] ||
-		die "$SCRIPT_DIR/pin-version-code.py is missing"
 
 	[[ -f "$FDROID_DIR/config.yml" ]] ||
 		die "$FDROID_DIR/config.yml is missing, copy it into place first"
@@ -368,12 +434,6 @@ main() {
 	# placeholder, so the real one goes in afterwards.
 	publish_repo_icon
 	log_index_files
-
-	for app_id in "${APP_IDS[@]}"; do
-		if [[ "${VERSION_CODE_FROM_TAG[$app_id]}" == "yes" ]]; then
-			pin_index_version_code "$app_id" "${PUBLISHED_VERSION_CODE[$app_id]}"
-		fi
-	done
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

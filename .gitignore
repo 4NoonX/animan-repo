@@ -2,6 +2,11 @@
 fdroid/keystore.keystore
 fdroid/config.yml
 
+# Local editor and Python leftovers
+.vscode/
+__pycache__/
+*.pyc
+
 # Everything fdroidserver generates
 fdroid/.fdroidignore
 fdroid/changelog/

@@ -7,7 +7,6 @@ on:
       - '.github/workflows/github.yml'
       - 'config.yml'
       - 'update.sh'
-      - 'pin-version-code.py'
       - 'fdroid/metadata/**'
   workflow_dispatch:
   schedule:
@@ -41,6 +40,8 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends \
             aapt \
+            apktool \
+            apksigner \
             ca-certificates \
             curl \
             default-jdk-headless \
@@ -49,7 +50,8 @@ jobs:
             jq \
             unzip \
             webp \
-            zip
+            zip \
+            zipalign
           chmod +x update.sh
 
       - name: Materialise the repository configuration
@@ -96,6 +98,11 @@ jobs:
       - name: Build the repository
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # update.sh signs the APKs whose manifest it rewrites with this same
+          # repository key, so the keystore material is needed here as well.
+          KEYALIAS: ${{ secrets.KEY_ALIAS }}
+          KEYSTORE_PASS: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./update.sh
 
       - name: Drop the signing material before publishing
