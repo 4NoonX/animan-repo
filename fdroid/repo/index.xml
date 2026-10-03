@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<fdroid>
+	<repo icon="icon.png" name="Yōkai" pubkey="3082054b30820333a00302010202085256d1bbc27c64a3300d06092a864886f70d01010c05003053310b3009060355040613025553310f300d060355040a1306344e6f6f6e583110300e060355040b1307462d44726f69643121301f06035504031318596f6b616920462d44726f6964205265706f7369746f72793020170d3236303933303131323232395a180f32303534303231353131323232395a3053310b3009060355040613025553310f300d060355040a1306344e6f6f6e583110300e060355040b1307462d44726f69643121301f06035504031318596f6b616920462d44726f6964205265706f7369746f727930820222300d06092a864886f70d01010105000382020f003082020a0282020100a402f1f343a320534b4505610296011cf6f818a866107ae0ce54452662aebe176456d6e1b50d5bb8f3f468fc68b63d18552f216bdaa53347f5039f8c1ac6991b555fea69acbc1f7e2273ae8312ebc6a03d3a5b433030c83043fef538af88f55733ddd6ff17c06220b2f9ec3054cdff86c1619d1e3999e76c5b35a6d25b3827ad37fb5620fb1aa4c9b5ce294db431699e083103ad67c196812aeaa5a2b32b051b0229eb670babda99a592aa8347e86fee822cc9298b0fea49678f2b4a8b43a3d5143202d880634ec5a792654a3648df272727db757c596a3667ccc87cd72b4d17de525f9a5a3fa0f3f231bfe91007c834618f06148ef5a071d726d62d7b447019795dc57465d4509ba09fb78acd51e73290adf10ccb2153d8e2688e44da5ff8fd5e644263ef3009267282df4fb2274e3d8df99a53b33c2b2f709bb6dc99c926caea976ef3a66bb60ca11385f3df92686f0d216e5b8ce4a6c71104ba0b699a9ff8d91a116080f6cb9c9a525df97ffb6e127f2f7ec06e960c17b37fa9149b21f5bb27208695650f175876718f99db071926b1ef4ac393f1da4b2a68b796f4428dac186f7713bf7cc93bcbd385b7780fe7fa3b17dd66f8c55a3c36f41eef439af9d4736e6cfde72bc80a9c5e475334bfc32974f4d16f5540f0fdaabdc9c5a72b93ec4c00b7b42074f87cc9230430102931e486ecff111efe4f532c0476e5dd01dafd0203010001a321301f301d0603551d0e0416041489737f0bda3a741abcea8c118cba07b9648c1101300d06092a864886f70d01010c0500038202010024d4b52e7aa22f9fb3b5c0f4dd8575cc921964b6b4ff8caf0b2d50e9e874fc5750888a54f823de0cac31a7c70eb0e5ab859c8ec478bee34128a985885b4aed379c0ae056cc2247d18843fa6a51f4767f9f72cc0ba51298358a51eefd5f6b3204b07b575d79c7f24f388218c1c7d9d1cf98e3edbcf566974bcd2f52bee4c45b828660056dc9a56e710ae75eb2c6d5006516fc5696705508e0af9c1d61c25a8ae585c94664aaad80b7d7620536ab67b47e370d0ee219f96028c00cbd30c703e3af06bfc11e529bd3afdbdc2e6884d31a3075f18980aa54319edebf69e72023f84ecd32f1a932bf550951ecedf41c1b837a96146440a169d23f40792a9afc39859499afdc617bda9be003aa2f99176d3be706b5311df287684026eb93410fb5e0330c8651cf61c8651b4757c8f262338c9392cbf71ee29c78a3c56e1891ca6883f6387d866357eb7a56a8bd8ec4ebcec507cc2737f5dc6c7bb175752e1553b906b42d5681be0e83be27094d1d686dceace3ad56511b0d989b73bfc2401befd9059a232ea67fb51fd265f19daeb4bc51b62b716e9b77ae6b478275ce34a3226aec07bb2452c8865077597b0e1464d0df61d27694c95e5ee18dd408e45a283438da4fbcac3e27873338b104f52813b3351ff238c7ec57009dddb48045e63824e062b8587d70865fa1dbb230c331fb433250ed20e3b2d7053abbfb50f40839aa74b651" timestamp="1791023154" url="https://4noonx.github.io/animan-repo/fdroid/repo" version="20002">
+		<description>The F-Droid repository for Yōkai and Yōkai Nightly, a free and open source manga reader for Android</description>
+	</repo>
+	<application id="eu.kanade.tachiyomi.yokai">
+		<id>eu.kanade.tachiyomi.yokai</id>
+		<added>2026-10-03</added>
+		<lastupdated>2026-10-03</lastupdated>
+		<name>Yōkai</name>
+		<summary></summary>
+		<desc>Yōkai is a free and open source manga reader for Android, forked from
+Tachiyomi/Mihon. It ships without any content and only talks to the
+sources you install yourself, everything you download can be read
+offline afterwards.
+
+Features:
+
+• Reading of downloaded content, local sources read ComicInfo.xml for
+the chapter title, number and scanlator.
+• NSFW/SFW library filters, categories and tags.
+• A configurable reader with multiple viewers, reading directions
+and per series settings.
+• Trackers for MyAnimeList, AniList, Kitsu, Manga Updates, Shikimori
+and Bangumi.
+• Scheduled library updates and local backups.
+• Material You themes, a staggered library grid, drag and drop
+sorting and dynamic categories.
+
+Requires Android 8.0 (API 26) or newer.
+
+Extensions are not part of this repository. They are downloaded from
+the extension repository built into the app, and every source you add
+determines where the app connects to. Many of them are not free
+services, which is why the app is tagged with the NonFreeNet
+anti-feature.
+
+This build is upstream's &quot;standard&quot; flavour, so it contains the
+proprietary Firebase and Google Play services libraries, hence the
+GooglePlay anti-feature. It is not a build from the F-Droid build
+service.
+</desc>
+		<license>Apache-2.0</license>
+		<categories>Reading</categories>
+		<category>Reading</category>
+		<web>https://github.com/null2264/yokai</web>
+		<source>https://github.com/null2264/yokai</source>
+		<tracker>https://github.com/null2264/yokai/issues</tracker>
+		<author>null2264</author>
+		<marketversion>v1.10.2</marketversion>
+		<marketvercode>161</marketvercode>
+		<antifeatures>GooglePlay,NonFreeNet</antifeatures>
+		<package>
+			<version>1.10.2</version>
+			<versioncode>161</versioncode>
+			<apkname>yokai-arm64-v8a-v1.10.2.apk</apkname>
+			<hash type="sha256">1f755850fe419b986fcdb1f68205b22ebf698fec27e3d5eb8e58e72d7cdac449</hash>
+			<size>28974689</size>
+			<sdkver>26</sdkver>
+			<targetSdkVersion>36</targetSdkVersion>
+			<added>2026-10-03</added>
+			<sig>e351953a217e429b42c2e9013d12d89a</sig>
+			<permissions>ACCESS_NETWORK_STATE,ACCESS_WIFI_STATE,FOREGROUND_SERVICE,FOREGROUND_SERVICE_DATA_SYNC,INTERNET,POST_NOTIFICATIONS,POST_PROMOTED_NOTIFICATIONS,QUERY_ALL_PACKAGES,READ_APP_SPECIFIC_LOCALES,RECEIVE_BOOT_COMPLETED,REQUEST_DELETE_PACKAGES,REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,REQUEST_INSTALL_PACKAGES,UPDATE_PACKAGES_WITHOUT_USER_ACTION,USE_BIOMETRIC,USE_FINGERPRINT,VIBRATE,WAKE_LOCK,com.android.launcher.permission.INSTALL_SHORTCUT,com.google.android.c2dm.permission.RECEIVE,eu.kanade.tachiyomi.yokai.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION,moe.shizuku.manager.permission.API_V23</permissions>
+			<nativecode>arm64-v8a</nativecode>
+		</package>
+	</application>
+	<application id="eu.kanade.tachiyomi.nightlyYokai">
+		<id>eu.kanade.tachiyomi.nightlyYokai</id>
+		<added>2026-10-03</added>
+		<lastupdated>2026-10-03</lastupdated>
+		<name>Yōkai Nightly</name>
+		<summary></summary>
+		<desc>Nightly builds of Yōkai, the free and open source manga reader for
+Android. Rebuilt from the development branch on every upstream commit,
+so expect bugs that the stable releases do not have. Back up your
+library before switching to a nightly and before updating it again.
+
+Because this is a nightly, it is installed under its own package name
+next to the stable app rather than replacing it. The two installs do
+not share a database: a library built up in one is not visible in the
+other.
+
+Features are the same as the stable release: reading of downloaded
+content, local sources that read ComicInfo.xml, NSFW/SFW library
+filters, multiple readers and reading directions, trackers for
+MyAnimeList, AniList, Kitsu, Manga Updates, Shikimori and Bangumi,
+categories, backups and Material You themes.
+
+Requires Android 8.0 (API 26) or newer.
+
+Extensions are not part of this repository. They are downloaded from
+the extension repository built into the app, and every source you add
+determines where the app connects to. Many of them are not free
+services, which is why the app is tagged with the NonFreeNet
+anti-feature.
+
+These builds are upstream's &quot;standard&quot; flavour, so they contain the
+proprietary Firebase and Google Play services libraries, hence the
+GooglePlay anti-feature. They are not builds from the F-Droid build
+service.
+
+Report problems on the main repository, not on the nightly one:
+https://github.com/null2264/yokai/issues
+</desc>
+		<license>Apache-2.0</license>
+		<categories>Reading</categories>
+		<category>Reading</category>
+		<web>https://github.com/null2264/yokai-nightly</web>
+		<source>https://github.com/null2264/yokai</source>
+		<tracker>https://github.com/null2264/yokai/issues</tracker>
+		<author>null2264</author>
+		<marketversion>r6433</marketversion>
+		<marketvercode>6433</marketvercode>
+		<antifeatures>GooglePlay,NonFreeNet</antifeatures>
+		<package>
+			<version>1.10.3-r6433</version>
+			<versioncode>6433</versioncode>
+			<apkname>yokai-arm64-v8a-r6433.apk</apkname>
+			<hash type="sha256">02131f2013c7fbb7adfe0b0dab23203b996fa1cb88289ecac0c323be1a2cb0f4</hash>
+			<size>29019905</size>
+			<sdkver>26</sdkver>
+			<targetSdkVersion>36</targetSdkVersion>
+			<added>2026-10-03</added>
+			<sig>dd89107ee7a370fdb92060a7cd49c72f</sig>
+			<permissions>ACCESS_NETWORK_STATE,ACCESS_WIFI_STATE,FOREGROUND_SERVICE,FOREGROUND_SERVICE_DATA_SYNC,INTERNET,POST_NOTIFICATIONS,POST_PROMOTED_NOTIFICATIONS,QUERY_ALL_PACKAGES,READ_APP_SPECIFIC_LOCALES,RECEIVE_BOOT_COMPLETED,REQUEST_DELETE_PACKAGES,REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,REQUEST_INSTALL_PACKAGES,UPDATE_PACKAGES_WITHOUT_USER_ACTION,USE_BIOMETRIC,USE_FINGERPRINT,VIBRATE,WAKE_LOCK,com.android.launcher.permission.INSTALL_SHORTCUT,com.google.android.c2dm.permission.RECEIVE,eu.kanade.tachiyomi.nightlyYokai.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION,moe.shizuku.manager.permission.API_V23</permissions>
+			<nativecode>arm64-v8a</nativecode>
+		</package>
+	</application>
+</fdroid>
