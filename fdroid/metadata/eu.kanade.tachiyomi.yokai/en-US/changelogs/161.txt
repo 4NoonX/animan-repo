@@ -1,0 +1,48 @@
+> ## **Note from v1.10.0**
+>
+> **BACKUP YOUR DATA!** First of all, sorry for the delay, because of burnout I've decided to take a step back from most of my projects, also been busy dealing with my thesis and irl job, I was hoping last month everything would finally settle down, but this godforsaken uni keep being a big pain in the *ss. Anyway, I was planning to polish this out before releasing, but since it seems that stuff is not gonna settle down anytime soon, especially now that Tachiyomi(x) API v1.6 has released for quite sometimes, I kinda had to release it... please do keep in mind that it's pretty unpolished, **so be sure to make backup before updating!**
+> 
+> This update also raises minimum Android version to Android 8 since most if not all extensions has also raised their requirement, this is also required to make these extensions to actually work.
+> 
+> Hopefully, soon-ish, like at the latest before new year, everything finally settles so I can continue working on this app, but for now I'll be going back to my cave, I'll hop in and check PR every now and then, but I can't guarantee being able to quickly test them. Anyway, cheers.
+
+Continuation of v1.10.1 basically, some more fixes to leftover issues for ext-lib v1.6 compatibility. And for life update, still grinding them thesis revisions while navigation painful bureaucracy for graduation. :) 
+
+### Fixes
+- Use local URI for completed extension downloads (#686) (@pacoa-kdbg)
+- Prevent ClassCastException crashes (#666) (@Guflly)
+- Fix TopAppBar deadlock (@thiago8rocha)
+- Support numeric extension metadata (#685) (@pacoa-kdbg)
+- Use `getMangaUpdate` instead `getMangaDetails`, should fix some crashes when browsing sources
+
+### Other
+- Optimize TopAppBar by reducing recomposition triggers
+- Stop disk from being re-scanned on every recomposition (@thiago8rocha)
+- Update dependency com.squareup.okio:okio to v3.18.2 (#705)
+- Update softprops/action-gh-release action to v3 (#715)
+- Update mikepenz/action-junit-report action to v6 (#714)
+- Update actions/upload-artifact action to v7 (#713)
+- Update actions/checkout action to v7 (#712)
+- Update softprops/action-gh-release action to v3 (#715)
+- Update mikepenz/action-junit-report action to v6 (#714)
+- Update actions/upload-artifact action to v7 (#713)
+- Update actions/checkout action to v7 (#712)
+- Update null2264/actions action
+- Update JDK to v21
+- Use FlexibleAdapter published on MavenCentral instead of JitPack
+
+---
+
+### Checksums
+
+| Variant | SHA-256 |
+| ------- | ------- |
+| Universal | 8cdcd9c29b65a4809d0574161170988a0a7356282b7b662bee8e65c88f0eb35a
+| arm64-v8a | 1f755850fe419b986fcdb1f68205b22ebf698fec27e3d5eb8e58e72d7cdac449
+| armeabi-v7a | 22a662b60c73c994140e018dd1c801c904867ffdd127137a93cb2114b1dfcd9d
+| x86 | de2ba29003499331fec645b2cd52ac5c7a4938ad86cbadd027f284d3dd926fc2 |
+| x86_64 | c0879d7e05d9c629aed261606b6161655562ef1fcf05bcde4868b789e3af443b |
+
+> [!TIP]
+>
+> If you are unsure which version to download then go with **yokai-v1.10.2.apk**

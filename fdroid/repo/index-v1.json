@@ -1,0 +1,520 @@
+{
+  "repo": {
+    "timestamp": 1791630677000,
+    "version": 20002,
+    "name": "Y\u014dkai",
+    "icon": "icon.png",
+    "address": "https://4noonx.github.io/animan-repo/fdroid/repo",
+    "description": "The F-Droid repository for Y\u014dkai and Y\u014dkai Nightly, a free and open source manga reader for Android"
+  },
+  "requests": {
+    "install": [],
+    "uninstall": []
+  },
+  "apps": [
+    {
+      "antiFeatures": [
+        "GooglePlay",
+        "NonFreeNet"
+      ],
+      "authorName": "null2264",
+      "categories": [
+        "Reading"
+      ],
+      "suggestedVersionName": "v1.10.2",
+      "suggestedVersionCode": "161",
+      "description": "Y\u014dkai is a free and open source manga reader for Android, forked from\nTachiyomi/Mihon. It ships without any content and only talks to the\nsources you install yourself, everything you download can be read\noffline afterwards.\n\nFeatures:\n\n\u2022 Reading of downloaded content, local sources read ComicInfo.xml for\nthe chapter title, number and scanlator.\n\u2022 NSFW/SFW library filters, categories and tags.\n\u2022 A configurable reader with multiple viewers, reading directions\nand per series settings.\n\u2022 Trackers for MyAnimeList, AniList, Kitsu, Manga Updates, Shikimori\nand Bangumi.\n\u2022 Scheduled library updates and local backups.\n\u2022 Material You themes, a staggered library grid, drag and drop\nsorting and dynamic categories.\n\nRequires Android 8.0 (API 26) or newer.\n\nExtensions are not part of this repository. They are downloaded from\nthe extension repository built into the app, and every source you add\ndetermines where the app connects to. Many of them are not free\nservices, which is why the app is tagged with the NonFreeNet\nanti-feature.\n\nThis build is upstream's \"standard\" flavour, so it contains the\nproprietary Firebase and Google Play services libraries, hence the\nGooglePlay anti-feature. It is not a build from the F-Droid build\nservice.\n",
+      "issueTracker": "https://github.com/null2264/yokai/issues",
+      "license": "Apache-2.0",
+      "name": "Y\u014dkai",
+      "sourceCode": "https://github.com/null2264/yokai",
+      "translation": "https://hosted.weblate.org/projects/yokai/",
+      "webSite": "https://github.com/null2264/yokai",
+      "added": 1791630665000,
+      "packageName": "eu.kanade.tachiyomi.yokai",
+      "lastUpdated": 1791630665000,
+      "localized": {
+        "en-US": {
+          "icon": "icon_I7drCLiz8nj9uqOXvqFkWKyS5bF_PvyKJ07weX-_IF4=.png",
+          "phoneScreenshots": [
+            "material-snackbar.png",
+            "share-menu.png"
+          ],
+          "whatsNew": "> ## **Note from v1.10.0**\n>\n> **BACKUP YOUR DATA!** First of all, sorry for the delay, because of burnout I've decided to take a step back from most of my projects, also been busy dealing with my thesis and irl job, I was hoping last month everything would finally settle down, but this godforsaken uni keep being a big pain in the *ss. Anyway, I was planning to polish this out before releasing, but since it seems that stuff is not gonna settle down anytime soon, especially now that Tachiyomi(x) "
+        }
+      }
+    },
+    {
+      "antiFeatures": [
+        "GooglePlay",
+        "NonFreeNet"
+      ],
+      "authorName": "null2264",
+      "categories": [
+        "Reading"
+      ],
+      "suggestedVersionName": "r6433",
+      "suggestedVersionCode": "6433",
+      "description": "Nightly builds of Y\u014dkai, the free and open source manga reader for\nAndroid. Rebuilt from the development branch on every upstream commit,\nso expect bugs that the stable releases do not have. Back up your\nlibrary before switching to a nightly and before updating it again.\n\nBecause this is a nightly, it is installed under its own package name\nnext to the stable app rather than replacing it. The two installs do\nnot share a database: a library built up in one is not visible in the\nother.\n\nFeatures are the same as the stable release: reading of downloaded\ncontent, local sources that read ComicInfo.xml, NSFW/SFW library\nfilters, multiple readers and reading directions, trackers for\nMyAnimeList, AniList, Kitsu, Manga Updates, Shikimori and Bangumi,\ncategories, backups and Material You themes.\n\nRequires Android 8.0 (API 26) or newer.\n\nExtensions are not part of this repository. They are downloaded from\nthe extension repository built into the app, and every source you add\ndetermines where the app connects to. Many of them are not free\nservices, which is why the app is tagged with the NonFreeNet\nanti-feature.\n\nThese builds are upstream's \"standard\" flavour, so they contain the\nproprietary Firebase and Google Play services libraries, hence the\nGooglePlay anti-feature. They are not builds from the F-Droid build\nservice.\n\nReport problems on the main repository, not on the nightly one:\nhttps://github.com/null2264/yokai/issues\n",
+      "issueTracker": "https://github.com/null2264/yokai/issues",
+      "license": "Apache-2.0",
+      "name": "Y\u014dkai Nightly",
+      "sourceCode": "https://github.com/null2264/yokai",
+      "translation": "https://hosted.weblate.org/projects/yokai/",
+      "webSite": "https://github.com/null2264/yokai-nightly",
+      "added": 1791630671000,
+      "packageName": "eu.kanade.tachiyomi.nightlyYokai",
+      "lastUpdated": 1791630673000,
+      "localized": {
+        "en-US": {
+          "icon": "icon_I7drCLiz8nj9uqOXvqFkWKyS5bF_PvyKJ07weX-_IF4=.png",
+          "phoneScreenshots": [
+            "material-snackbar.png",
+            "share-menu.png"
+          ],
+          "whatsNew": "> [!CAUTION]\n> _**This alpha version is for testing only!**_\n>\n> This build is triggered by commit [`843a59b20e`](https://github.com/null2264/yokai/commit/843a59b20e4edd26c545dc48989a00162ac65937)\n\nIt is not ready for daily use and we do not guarantee its usability. Please download the latest stable releases instead (https://github.com/null2264/yokai/releases/latest). If you insist, please be sure to ALWAYS backup before updating.\n\n### Other\n- Turn `scanlators_view` to its own table (`excluded_s"
+        }
+      }
+    }
+  ],
+  "packages": {
+    "eu.kanade.tachiyomi.nightlyYokai": [
+      {
+        "added": 1791630673000,
+        "apkName": "yokai-arm64-v8a-r6433.apk",
+        "hash": "02131f2013c7fbb7adfe0b0dab23203b996fa1cb88289ecac0c323be1a2cb0f4",
+        "hashType": "sha256",
+        "minSdkVersion": 26,
+        "nativecode": [
+          "arm64-v8a"
+        ],
+        "packageName": "eu.kanade.tachiyomi.nightlyYokai",
+        "sig": "dd89107ee7a370fdb92060a7cd49c72f",
+        "signer": "39c5bece58236804c9a36d1fbed439dd89796fbd7b5d782c904e41b19dffcadb",
+        "size": 29019905,
+        "targetSdkVersion": 36,
+        "uses-permission": [
+          [
+            "android.permission.ACCESS_NETWORK_STATE",
+            null
+          ],
+          [
+            "android.permission.INTERNET",
+            null
+          ],
+          [
+            "android.permission.ACCESS_WIFI_STATE",
+            null
+          ],
+          [
+            "android.permission.WAKE_LOCK",
+            null
+          ],
+          [
+            "android.permission.FOREGROUND_SERVICE",
+            null
+          ],
+          [
+            "android.permission.RECEIVE_BOOT_COMPLETED",
+            null
+          ],
+          [
+            "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
+            null
+          ],
+          [
+            "android.permission.FOREGROUND_SERVICE_DATA_SYNC",
+            null
+          ],
+          [
+            "android.permission.REQUEST_INSTALL_PACKAGES",
+            null
+          ],
+          [
+            "android.permission.REQUEST_DELETE_PACKAGES",
+            null
+          ],
+          [
+            "android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION",
+            null
+          ],
+          [
+            "android.permission.QUERY_ALL_PACKAGES",
+            null
+          ],
+          [
+            "com.android.launcher.permission.INSTALL_SHORTCUT",
+            null
+          ],
+          [
+            "android.permission.VIBRATE",
+            null
+          ],
+          [
+            "android.permission.POST_NOTIFICATIONS",
+            null
+          ],
+          [
+            "android.permission.POST_PROMOTED_NOTIFICATIONS",
+            null
+          ],
+          [
+            "android.permission.READ_APP_SPECIFIC_LOCALES",
+            null
+          ],
+          [
+            "android.permission.USE_BIOMETRIC",
+            null
+          ],
+          [
+            "android.permission.USE_FINGERPRINT",
+            null
+          ],
+          [
+            "com.google.android.c2dm.permission.RECEIVE",
+            null
+          ],
+          [
+            "eu.kanade.tachiyomi.nightlyYokai.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+            null
+          ],
+          [
+            "moe.shizuku.manager.permission.API_V23",
+            null
+          ]
+        ],
+        "versionCode": 6433,
+        "versionName": "1.10.3-r6433"
+      },
+      {
+        "added": 1791630671000,
+        "apkName": "yokai-r6433.apk",
+        "hash": "45477b8742ab7abe386df43fee4f8b3a8466e0d416d56d15a13e438e1b96b9ff",
+        "hashType": "sha256",
+        "minSdkVersion": 26,
+        "nativecode": [
+          "arm64-v8a",
+          "armeabi-v7a",
+          "x86",
+          "x86_64"
+        ],
+        "packageName": "eu.kanade.tachiyomi.nightlyYokai",
+        "sig": "dd89107ee7a370fdb92060a7cd49c72f",
+        "signer": "39c5bece58236804c9a36d1fbed439dd89796fbd7b5d782c904e41b19dffcadb",
+        "size": 68707892,
+        "targetSdkVersion": 36,
+        "uses-permission": [
+          [
+            "android.permission.ACCESS_NETWORK_STATE",
+            null
+          ],
+          [
+            "android.permission.INTERNET",
+            null
+          ],
+          [
+            "android.permission.ACCESS_WIFI_STATE",
+            null
+          ],
+          [
+            "android.permission.WAKE_LOCK",
+            null
+          ],
+          [
+            "android.permission.FOREGROUND_SERVICE",
+            null
+          ],
+          [
+            "android.permission.RECEIVE_BOOT_COMPLETED",
+            null
+          ],
+          [
+            "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
+            null
+          ],
+          [
+            "android.permission.FOREGROUND_SERVICE_DATA_SYNC",
+            null
+          ],
+          [
+            "android.permission.REQUEST_INSTALL_PACKAGES",
+            null
+          ],
+          [
+            "android.permission.REQUEST_DELETE_PACKAGES",
+            null
+          ],
+          [
+            "android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION",
+            null
+          ],
+          [
+            "android.permission.QUERY_ALL_PACKAGES",
+            null
+          ],
+          [
+            "com.android.launcher.permission.INSTALL_SHORTCUT",
+            null
+          ],
+          [
+            "android.permission.VIBRATE",
+            null
+          ],
+          [
+            "android.permission.POST_NOTIFICATIONS",
+            null
+          ],
+          [
+            "android.permission.POST_PROMOTED_NOTIFICATIONS",
+            null
+          ],
+          [
+            "android.permission.READ_APP_SPECIFIC_LOCALES",
+            null
+          ],
+          [
+            "android.permission.USE_BIOMETRIC",
+            null
+          ],
+          [
+            "android.permission.USE_FINGERPRINT",
+            null
+          ],
+          [
+            "com.google.android.c2dm.permission.RECEIVE",
+            null
+          ],
+          [
+            "eu.kanade.tachiyomi.nightlyYokai.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+            null
+          ],
+          [
+            "moe.shizuku.manager.permission.API_V23",
+            null
+          ]
+        ],
+        "versionCode": 6433,
+        "versionName": "1.10.3-r6433"
+      }
+    ],
+    "eu.kanade.tachiyomi.yokai": [
+      {
+        "added": 1791630665000,
+        "apkName": "yokai-arm64-v8a-v1.10.2.apk",
+        "hash": "1f755850fe419b986fcdb1f68205b22ebf698fec27e3d5eb8e58e72d7cdac449",
+        "hashType": "sha256",
+        "minSdkVersion": 26,
+        "nativecode": [
+          "arm64-v8a"
+        ],
+        "packageName": "eu.kanade.tachiyomi.yokai",
+        "sig": "e351953a217e429b42c2e9013d12d89a",
+        "signer": "dff12e24eeeb83b790564284775f01fca0f554d7b6f339bc8bbf32f85b0153d9",
+        "size": 28974689,
+        "targetSdkVersion": 36,
+        "uses-permission": [
+          [
+            "android.permission.ACCESS_NETWORK_STATE",
+            null
+          ],
+          [
+            "android.permission.INTERNET",
+            null
+          ],
+          [
+            "android.permission.ACCESS_WIFI_STATE",
+            null
+          ],
+          [
+            "android.permission.WAKE_LOCK",
+            null
+          ],
+          [
+            "android.permission.FOREGROUND_SERVICE",
+            null
+          ],
+          [
+            "android.permission.RECEIVE_BOOT_COMPLETED",
+            null
+          ],
+          [
+            "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
+            null
+          ],
+          [
+            "android.permission.FOREGROUND_SERVICE_DATA_SYNC",
+            null
+          ],
+          [
+            "android.permission.REQUEST_INSTALL_PACKAGES",
+            null
+          ],
+          [
+            "android.permission.REQUEST_DELETE_PACKAGES",
+            null
+          ],
+          [
+            "android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION",
+            null
+          ],
+          [
+            "android.permission.QUERY_ALL_PACKAGES",
+            null
+          ],
+          [
+            "com.android.launcher.permission.INSTALL_SHORTCUT",
+            null
+          ],
+          [
+            "android.permission.VIBRATE",
+            null
+          ],
+          [
+            "android.permission.POST_NOTIFICATIONS",
+            null
+          ],
+          [
+            "android.permission.POST_PROMOTED_NOTIFICATIONS",
+            null
+          ],
+          [
+            "android.permission.READ_APP_SPECIFIC_LOCALES",
+            null
+          ],
+          [
+            "android.permission.USE_BIOMETRIC",
+            null
+          ],
+          [
+            "android.permission.USE_FINGERPRINT",
+            null
+          ],
+          [
+            "com.google.android.c2dm.permission.RECEIVE",
+            null
+          ],
+          [
+            "eu.kanade.tachiyomi.yokai.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+            null
+          ],
+          [
+            "moe.shizuku.manager.permission.API_V23",
+            null
+          ]
+        ],
+        "versionCode": 161,
+        "versionName": "1.10.2"
+      },
+      {
+        "added": 1791630665000,
+        "apkName": "yokai-v1.10.2.apk",
+        "hash": "8cdcd9c29b65a4809d0574161170988a0a7356282b7b662bee8e65c88f0eb35a",
+        "hashType": "sha256",
+        "minSdkVersion": 26,
+        "nativecode": [
+          "arm64-v8a",
+          "armeabi-v7a",
+          "x86",
+          "x86_64"
+        ],
+        "packageName": "eu.kanade.tachiyomi.yokai",
+        "sig": "e351953a217e429b42c2e9013d12d89a",
+        "signer": "dff12e24eeeb83b790564284775f01fca0f554d7b6f339bc8bbf32f85b0153d9",
+        "size": 68662676,
+        "targetSdkVersion": 36,
+        "uses-permission": [
+          [
+            "android.permission.ACCESS_NETWORK_STATE",
+            null
+          ],
+          [
+            "android.permission.INTERNET",
+            null
+          ],
+          [
+            "android.permission.ACCESS_WIFI_STATE",
+            null
+          ],
+          [
+            "android.permission.WAKE_LOCK",
+            null
+          ],
+          [
+            "android.permission.FOREGROUND_SERVICE",
+            null
+          ],
+          [
+            "android.permission.RECEIVE_BOOT_COMPLETED",
+            null
+          ],
+          [
+            "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
+            null
+          ],
+          [
+            "android.permission.FOREGROUND_SERVICE_DATA_SYNC",
+            null
+          ],
+          [
+            "android.permission.REQUEST_INSTALL_PACKAGES",
+            null
+          ],
+          [
+            "android.permission.REQUEST_DELETE_PACKAGES",
+            null
+          ],
+          [
+            "android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION",
+            null
+          ],
+          [
+            "android.permission.QUERY_ALL_PACKAGES",
+            null
+          ],
+          [
+            "com.android.launcher.permission.INSTALL_SHORTCUT",
+            null
+          ],
+          [
+            "android.permission.VIBRATE",
+            null
+          ],
+          [
+            "android.permission.POST_NOTIFICATIONS",
+            null
+          ],
+          [
+            "android.permission.POST_PROMOTED_NOTIFICATIONS",
+            null
+          ],
+          [
+            "android.permission.READ_APP_SPECIFIC_LOCALES",
+            null
+          ],
+          [
+            "android.permission.USE_BIOMETRIC",
+            null
+          ],
+          [
+            "android.permission.USE_FINGERPRINT",
+            null
+          ],
+          [
+            "com.google.android.c2dm.permission.RECEIVE",
+            null
+          ],
+          [
+            "eu.kanade.tachiyomi.yokai.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+            null
+          ],
+          [
+            "moe.shizuku.manager.permission.API_V23",
+            null
+          ]
+        ],
+        "versionCode": 161,
+        "versionName": "1.10.2"
+      }
+    ]
+  }
+}
