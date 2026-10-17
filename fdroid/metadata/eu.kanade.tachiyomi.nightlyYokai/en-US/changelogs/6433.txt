@@ -1,0 +1,11 @@
+> [!CAUTION]
+> _**This alpha version is for testing only!**_
+>
+> This build is triggered by commit [`843a59b20e`](https://github.com/null2264/yokai/commit/843a59b20e4edd26c545dc48989a00162ac65937)
+
+It is not ready for daily use and we do not guarantee its usability. Please download the latest stable releases instead (https://github.com/null2264/yokai/releases/latest). If you insist, please be sure to ALWAYS backup before updating.
+
+### Other
+- Turn `scanlators_view` to its own table (`excluded_scanlators`), should improve the app's performance quite a bit.
+
+---
