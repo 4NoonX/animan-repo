@@ -1,0 +1,49 @@
+{
+  "/etc/issue.net": "Debian GNU/Linux forky/sid",
+  "antiFeatures": {
+    "GooglePlay": {
+      "apps": [
+        "eu.kanade.tachiyomi.nightlyYokai",
+        "eu.kanade.tachiyomi.yokai"
+      ]
+    },
+    "NonFreeNet": {
+      "apps": [
+        "eu.kanade.tachiyomi.nightlyYokai",
+        "eu.kanade.tachiyomi.yokai"
+      ]
+    }
+  },
+  "apksigner": "/usr/bin/apksigner",
+  "archivePolicy0": [],
+  "commandLine": [
+    "/usr/bin/fdroid update",
+    "--pretty",
+    "--use-date-from-apk"
+  ],
+  "disabled": [],
+  "endTimestamp": 1794658242924,
+  "failedBuilds": {},
+  "jarsigner": "/usr/lib/jvm/default-java/bin/jarsigner",
+  "keytool": "/usr/lib/jvm/default-java/bin/keytool",
+  "needsUpdate": [],
+  "noPackages": [
+    "eu.kanade.tachiyomi.nightlyYokai",
+    "eu.kanade.tachiyomi.yokai"
+  ],
+  "noUpdateCheck": [
+    "eu.kanade.tachiyomi.nightlyYokai",
+    "eu.kanade.tachiyomi.yokai"
+  ],
+  "stages": {
+    "delete_disabled_builds": 1794658237851,
+    "index.make repo": 1794658241189,
+    "prepare_apps repo": 1794658241185,
+    "process_apks": 1794658237851,
+    "read_added_date_from_all_apks": 1794658241185,
+    "remove_apks": 1794658241184,
+    "scan_repo_files": 1794658241184
+  },
+  "startTimestamp": 1794658237000,
+  "subcommand": "update"
+}
